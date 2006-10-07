@@ -1,10 +1,10 @@
 /**
-** @file main.c
-** @brief Main setup stuff.
-** Chained in Sanity.
-** Core Library.
-** This is where the main core stuff happens
-**/
+ * @file main.c
+ * @brief Main setup stuff.
+ * Chained in Sanity.
+ * Core Library.
+ * This is where the main core stuff happens
+ */
 
 #include "chained.h"
 #include <sys/resource.h> /* For rlimit stuff */
