@@ -21,11 +21,18 @@
 
 #include "config.h"
 
+/* These files are fairly selfcontained, but depended on by some types. */
+
+#include <map_presets.h>
+#include <linklist.h>
+#include <map.h>
+
 /*
  * Lets have some types...
  */
 
 typedef char bool;
+
 #include <types/connection.h>
 
 
