@@ -7,6 +7,9 @@
 #ifndef _INCLUDES_CHAINED_H_
 #define _INCLUDES_CHAINED_H_
 
+#define true 1
+#define false 0
+
 /*
 ** These files are required by pretty much every part of chained ... 
 ** Hence why we have them here :P
@@ -18,7 +21,13 @@
 
 #include "config.h"
 
-#include "types.h"
+/*
+ * Lets have some types...
+ */
+
+typedef char bool;
+#include <types/connection.h>
+
 
 #include "main.h"
 
