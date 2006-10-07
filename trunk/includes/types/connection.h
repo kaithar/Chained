@@ -26,12 +26,10 @@ struct connection
 		unsigned int dead:1;
 		/** This signifies that the connection has been closed */
 		unsigned int closed:1;
-		/**@{
-		 * These are flags used by the socket engine to track what sort of event this connection is being listened for.
-		 */
+		/** Socket engine listening for readable. */
 		unsigned int listen_read:1;
+		/** Socket engine listening for writable. */
 		unsigned int listen_write:1;
-		/**@}*/
 	} state;
 	
 	/** This is an SSL pointer.  It's typed void to avoid the dependancy */
