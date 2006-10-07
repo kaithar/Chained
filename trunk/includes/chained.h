@@ -19,7 +19,6 @@
 #include "config.h"
 
 #include "types.h"
-#include "externs.h"
 
 #include "main.h"
 
