@@ -2,7 +2,7 @@
  * Function prototypes for main.h
  */
 
-#ifdef _INCLUDES_MAIN_H_
+#ifndef _INCLUDES_MAIN_H_
 #define _INCLUDES_MAIN_H_
 
 extern int DEBUG;
