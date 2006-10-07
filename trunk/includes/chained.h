@@ -34,6 +34,7 @@
 typedef char bool;
 
 #include <types/connection.h>
+#include <types/timers.h>
 
 
 #include "main.h"

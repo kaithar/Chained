@@ -10,6 +10,9 @@
 
 typedef struct connection connection;
 
+/**
+ * This struct abstracts any sort of connection.
+ */
 struct connection
 {
 	/** This should be used to name the connection. */
@@ -36,48 +39,56 @@ struct connection
 	/** This is a FILE pointer.  It's typed void to avoid the dependancy */
 	void *file;
 	
+	/**
+	 * @name RecvQ
+	 */
+	/*@{*/
 	linklist_root *recvq;			/**< This is a linklist of messages received from this connection but not processed yet. */
 	int recvq_size;						/**< This is how much data we're storing on this recvq linklist */
 	unsigned char *recvq_buf;	/**< Buffer for storing part read data */
 	int recvq_buf_used;				/**< Amount of space used in the buffer. */
 	int recvq_buf_free;				/**< Amount of space left in the buffer. */
+	/*@}*/
 	
+	/**
+	 * @name SendQ
+	 */
+	/*@{*/
 	linklist_root *sendq;			/**< This is a linklist of messages about to be sent from this connection. */
 	int sendq_size;						/**< This is how much data we're storing on this sendq linklist */
 	unsigned char *sendq_buf;	/**< Buffer for storing part sent data */
 	int sendq_buf_used;				/**< Amount of space used in the buffer. */
 	int sendq_buf_free;				/**< Amount of space left in the buffer. */
+	/*@}*/
 	
+	/**
+	 * @name IO Functions
+	 */
+	/*@{*/
 	/** This function calls the function doing the writing */
 	int (*write)(connection *, char *);
 	/** This function calls the function doing the reading 
-	 * @NOTE: If this connection is accepting connections, this is where it is done.
+	 * @note: If this connection is accepting connections, this is where it is done.
 	 */
 	int (*read)(connection *, int how_much, char *buffer);
 	/** This function should close down the connection */
 	int (*close)(connection *);
+	/*@}*/
+
+	/** Shutdown the encryption */
+	int (*enc_close) (connection *);
 
 	/**
-	 * Encryption handling
+	 * @name Events callbacks...
 	 */
-	struct
-	{
-		/** shutdown the encryption */
-		int (*close) (connection *);
-	} encryption;
-
-	/**
-	 * Events callbacks...
-	 */
-	struct
-	{
-		/** Line read in... */
-		int (*read) (connection *, unsigned char *);
-		/** New connection accepted! */
-		int (*accept) (connection *);
-		/** Connection closed */
-		int (*close)(connection *);
-	} callback;
+	/*@{*/
+	/** Line read in... */
+	int (*callback_read) (connection *, unsigned char *);
+	/** New connection accepted! */
+	int (*callback_accept) (connection *);
+	/** Connection closed */
+	int (*callback_close)(connection *);
+	/*@}*/
 };
 
 #endif

@@ -10,33 +10,33 @@
 #include <sys/resource.h> /* For rlimit stuff */
 
 /**
- * @BRIEF I am set by config param "debug"
- * @INTERNAL
- * @TODO This should probably be adjusted to a bitmask or something
+ * @brief I am set by config param "debug"
+ * @internal
+ * @todo This should probably be adjusted to a bitmask or something
  */
 
 int DEBUG = 0; // Set by the config keyword "debug" ... no params
 
 /**
- * @BRIEF I am set by the socket engine of your choice
- * @INTERNAL
+ * @brief I am set by the socket engine of your choice
+ * @internal
  */
 socket_engine *socketengine = NULL;
 
 /**
- * @BRIEF Connection tracking...
- * @INTERNAL
+ * @brief Connection tracking...
+ * @internal
  */
 connection *connections[__MAXFDS__];
 
 /**
- * @BRIEF I try to make sure we're dropping cores...
+ * @brief I try to make sure we're dropping cores...
  * This function attempts to make sure we drop cores.
  * Should it fail, it will generate an error to the stderr.
- * @TODO
+ * @todo
  * Ideally, we need some way of making error here fatal.
  * That way we can get the program to halt if it won't be able to drop cores.
- * @NOTE
+ * @note
  * Thankie w00t for pointing this out :)
  */
 
@@ -55,7 +55,7 @@ void cis_drop_cores (void)
 }
 
 /**
- * @BRIEF I initialize the various componants to make them ready for use.
+ * @brief I initialize the various componants to make them ready for use.
  * This function should be called very early on, as it make the library ready for use.
  * Amongst other things it calls srand and mallocs some stuff.
  */
@@ -74,16 +74,16 @@ void cis_init (void)
 }
 
 /**
- * @BRIEF I make the magic happen... I am the main loop!
+ * @brief I make the magic happen... I am the main loop!
  * This function contains the main "reactor" loop...\n
  * The loop that makes it all happen basically.
  * The following things get called from this function:
- * -Socket engine
- * -Timer loop
- * -Connection Reaper
- * @TODO
- * -#Although we can listen for write on a socket, the socket loop doesn't do anything with it.
- * -#Infact, the whole socket loop should probably be slimed down!  This function needs to be simple! 
+ * - Socket engine
+ * - Timer loop
+ * - Connection Reaper
+ * @todo
+ * -# Although we can listen for write on a socket, the socket loop doesn't do anything with it.
+ * -# Infact, the whole socket loop should probably be slimed down!  This function needs to be simple! 
  */
 
 void cis_start (void)
