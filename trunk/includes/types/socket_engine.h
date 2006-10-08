@@ -18,7 +18,7 @@ struct socket_engine
 	connection *cns[__MAXFDS__]; /**< Our listening connection collection. */
 	int (*add)(connection *cn, int addread, int addwrite); /**< Add a new connection to the engine. */
 	int (*del)(connection *cn); /**< Remove a connection from the engine. */
-	int (*wait)(connection *read_events[], connection *write_events[]); /**< Wait for events. */
+	int (*wait)(connection *read_events[], connection *write_events[], int howlong); /**< Wait for events. */
 };
 
 #endif
