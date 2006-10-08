@@ -1,8 +1,10 @@
-/*
-** Chained in Sanity
-** Core library include
-** Try to keep this neat please!
-**/
+/**
+ * @file chained.h
+ * @brief Core include.
+ * Chained in Sanity
+ * Core library include
+ * Try to keep this neat please!
+ */
 
 #ifndef _INCLUDES_CHAINED_H_
 #define _INCLUDES_CHAINED_H_
@@ -11,9 +13,9 @@
 #define false 0
 
 /*
-** These files are required by pretty much every part of chained ... 
-** Hence why we have them here :P
-**/
+ * These files are required by pretty much every part of chained ... 
+ * Hence why we have them here :P
+ */
 
 #include <stdio.h>
 /*#include <stdlib.h>*/
@@ -21,15 +23,20 @@
 
 #include "config.h"
 
-/* These files are fairly selfcontained, but depended on by some types. */
+/**
+ * @name These files are fairly selfcontained, but depended on by some types. 
+ */
+/*@{*/
 
 #include <map_presets.h>
 #include <linklist.h>
 #include <map.h>
 
-/*
- * Lets have some types...
+/*@}*/
+/**
+ * @name Lets have some types...
  */
+/*@{*/
 
 typedef char bool;
 
@@ -38,6 +45,15 @@ typedef char bool;
 #include <types/socket_engine.h>
 #include <types/modules.h>
 
-#include "main.h"
+/*@}*/
+/**
+ * @name Now lets have some prototypes
+ */
+
+#include <main.h>
+#include <conn_basics.h>
+#include <strings.h>
+
+/*@}*/
 
 #endif
