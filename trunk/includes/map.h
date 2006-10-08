@@ -66,4 +66,23 @@ extern void map_allow_preset(map_root *root, const int preset[257]);
 extern map_root *map_create_from_preset(const int preset[257]);
 extern map_root *map_create_init_from_preset(const int preset[257]);
 
+/********************************************************
+ * This section is special ...													*
+ * these externs are for the map_preset() function.			*
+ * There actual definitions are in map.c								*
+ ********************************************************/
+ 
+extern const int MAP_ALLOW_ALL[257];
+extern const int MAP_ALLOW_AZ[257];
+extern const int MAP_ALLOW_AZ_CI[257];
+extern const int MAP_ALLOW_AZ_SPACE[257];
+extern const int MAP_ALLOW_AZ_SPACE_CI[257];
+extern const int MAP_ALLOW_AZ09[257];
+extern const int MAP_ALLOW_AZ09_CI[257];
+extern const int MAP_ALLOW_AZ09_SPACE[257];
+extern const int MAP_ALLOW_AZ09_SPACE_CI[257];
+
+extern const int ALLOWED_NICK_CHARS[257];
+extern const int ALLOWED_CHAN_CHARS[257];
+
 #endif

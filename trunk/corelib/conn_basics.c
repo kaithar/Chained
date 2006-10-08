@@ -44,8 +44,8 @@ void conn_read_to_sendq (connection *cn)
 	while (1)
 	{
 		memset(&conn_read_in_temp,0,readin);
-		line = buf;
-		if ((nbytes = cn->read(cn, readin, &conn_read_in_temp)) <= 0) 
+		line = conn_read_in_temp;
+		if ((nbytes = cn->read(cn, readin, conn_read_in_temp)) <= 0) 
 		{
 			/* We expect cn->read to handle it's own errors and return 0 when we need to stop reading. */
 			break;
@@ -62,15 +62,15 @@ void conn_read_to_sendq (connection *cn)
 			 */
 			while ((next = lineBreaker(line,"\n\r",2)) != NULL)
 			{
-				if (*conn->buffer != 0) // If there is something in the buffer from the last read, bang this line on the end.
+				if (*cn->recvq_buf != 0) // If there is something in the buffer from the last read, bang this line on the end.
 				{
 					strncat(cn->recvq_buf, line, (cn->recvq_buf_free - 1) );
 					line = strdup(cn->recvq_buf);
 					
 					/* Wipe the connection's recvq buffer */
 					memset(cn->recvq_buf, 0, (cn->recvq_buf_free + cn->recvq_buf_used) );
-					cn->freebuf = readin;
-					cn->usedbuf = 0;
+					cn->recvq_buf_free = readin;
+					cn->recvq_buf_used = 0;
 					
 					linklist_add(cn->recvq,line);
 					cn->recvq_size += strlen(line);
@@ -86,10 +86,10 @@ void conn_read_to_sendq (connection *cn)
 				}
 				line = next;
 			}
-			strncat(cn->recv_buf, line, (cn->recq_buf_free - 1) );
+			strncat(cn->recvq_buf, line, (cn->recvq_buf_free - 1) );
 			foo = strlen(line);
-			conn->freebuf -= foo;
-			conn->usedbuf += foo;
+			cn->recvq_buf_free -= foo;
+			cn->recvq_buf_used += foo;
 			foo = 0;
 		}
 	}

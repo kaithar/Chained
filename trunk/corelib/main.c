@@ -48,7 +48,7 @@ void cis_drop_cores (void)
 		rlim.rlim_cur = rlim.rlim_max;
 		if (setrlimit(RLIMIT_CORE,&rlim)) {
 			perror("rlimit");
-			sprintf(stderr,"setting the resource limit failed with errno: %d\n",errno);
+			fprintf(stderr,"setting the resource limit failed with errno: %d\n",errno);
 		}
 	}
 	return;
@@ -65,7 +65,7 @@ void cis_init (void)
 	static initd = 0;
 	
 	if (initd == 1)
-		sprintf(stderr,"You attempted to initalize the library twice!\n");
+		fprintf(stderr,"You attempted to initalize the library twice!\n");
 	
 	srand(time(0));
 	memset(connections,0,sizeof(connections));
@@ -150,7 +150,7 @@ void cis_start (void)
 					
 					temp->recvq_size -= strlen(line);
 					if (temp->recvq_size < 0)
-						sprintf(stderr,"Um, negative recvq? Something is seriously wrong here.\n")
+						fprintf(stderr,"Um, negative recvq? Something is seriously wrong here.\n");
 					
 					linklist_iter_del( hack );
 					linklist_iter_del( global_recvq_start );
@@ -185,7 +185,7 @@ void cis_start (void)
 		
 		processTimers();
 	}
-	return 0;
+	return;
 }
 
 

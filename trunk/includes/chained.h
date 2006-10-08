@@ -11,6 +11,8 @@
 
 #define true 1
 #define false 0
+typedef char bool;
+#define __MAXFDS__ 1024
 
 /*
  * These files are required by pretty much every part of chained ... 
@@ -28,7 +30,6 @@
  */
 /*@{*/
 
-#include <map_presets.h>
 #include <linklist.h>
 #include <map.h>
 
@@ -37,8 +38,6 @@
  * @name Lets have some types...
  */
 /*@{*/
-
-typedef char bool;
 
 #include <types/connection.h>
 #include <types/timers.h>
@@ -53,6 +52,7 @@ typedef char bool;
 #include <main.h>
 #include <conn_basics.h>
 #include <strings.h>
+#include <support.h>
 
 /*@}*/
 
