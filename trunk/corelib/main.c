@@ -83,7 +83,8 @@ void cis_init (void)
  * - Connection Reaper
  * @todo
  * -# Although we can listen for write on a socket, the socket loop doesn't do anything with it.
- * -# Infact, the whole socket loop should probably be slimed down!  This function needs to be simple! 
+ * -# Infact, the whole socket loop should probably be slimed down!  This function needs to be simple!
+ * -# Write a fifo list so the hack used for recvq/sendq can be nuked!
  */
 
 void cis_start (void)
@@ -93,26 +94,95 @@ void cis_start (void)
 	connection *read_events[__MAXFDS__];
 	connection *write_events[__MAXFDS__];
 	
+	linklist_root *global_recvq;
+	linklist_iter *global_recvq_start;
+	
+	linklist_iter *hack = NULL;
+	
+	connection *temp = NULL;
+	char *line;
+	
+	int patience = 250;
+	
+	if (socketengine == NULL)
+		cis_load_selectengine();
+	
+	global_recvq = linklist_create();
+	global_recvq_start = linklist_iter_create( global_recvq );
+	hack = linklist_iter_create( global_recvq );
+	
 	/* main loop */
 	for(;;) {
 		
-		eventcount = socketengine->wait(read_events, write_events);
+		eventcount = socketengine->wait(read_events, write_events, 250);
 		
 		/* Run through the existing connections looking for data to read */
 		for(i = 0; i < eventcount; i++) {
 			if (read_events[i] != NULL)
 			{
-				if (read_events[i]->doRead(read_events[i]) < 0) {
-					if (read_events[i]->doClose)
-						read_events[i]->doClose(read_events[i]); // bye!
-					else
-					{
-						sprintf(stderr,"Object registered without a close!\nAttempting emergency close!\n");
-						close(read_events[i]->fd);
-					}
-				}
+				conn_read_to_sendq(read_events[i]);
+				linklist_add(global_recvq, read_events[i]);
+				/* Don't wait for data! too much to do! */
+				patience = 0;
 			}
 		} // foreach (event)
+		
+		if (global_recvq->members > 0)
+		{
+			for (;;)
+			{
+				temp = linklist_iter_next(global_recvq_start);
+				if (temp == NULL)
+				{
+					/* We seem to be out of connections to process... Have more patience waiting for new data ...*/
+					patience = 250;
+					break;
+				}
+				if ((temp->state.dead == 0)&&(temp->recvq->members > 0))
+				{
+					/* Dead connections don't get processed ... closed ones -do- (since they may have closed after sending this...) */
+					/* HACK! NEED A FIFO LIST! */
+					hack->list = temp->recvq;
+					hack->current = NULL;
+					line = linklist_iter_next( hack );
+					
+					temp->callback_read(temp,line);
+					
+					temp->recvq_size -= strlen(line);
+					if (temp->recvq_size < 0)
+						sprintf(stderr,"Um, negative recvq? Something is seriously wrong here.\n")
+					
+					linklist_iter_del( hack );
+					linklist_iter_del( global_recvq_start );
+					
+					if (global_recvq->members == 0)
+					{
+						patience = 250; /* Nothing to do, so I don't mind wait a while */
+					}
+					break;
+				}
+				else
+				{
+					/* So this is either dead, or has no recvq ... both could happen, but ignore it either way */
+					linklist_iter_del( global_recvq_start );
+					
+					if (temp->recvq->members > 0)
+					{
+						/* Must be dead but with a recvq still ... decrease the recvq
+						* don't worry about the size though, if it's dead then it can't get bigger
+						*/
+						
+						/* HACK! NEED A FIFO LIST! */
+						hack->list = temp->recvq;
+						hack->current = NULL;
+						linklist_iter_next( hack );
+						linklist_iter_del( hack );
+					}
+					/* Since we didn't do much with this one, we'll try another pass... */
+				}
+			}
+		}
+		
 		processTimers();
 	}
 	return 0;
