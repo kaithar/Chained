@@ -155,6 +155,8 @@ void cis_start (void)
 					linklist_iter_del( hack );
 					linklist_iter_del( global_recvq_start );
 					
+					free(line);
+					
 					if (global_recvq->members == 0)
 					{
 						patience = 250; /* Nothing to do, so I don't mind wait a while */
@@ -175,8 +177,9 @@ void cis_start (void)
 						/* HACK! NEED A FIFO LIST! */
 						hack->list = temp->recvq;
 						hack->current = NULL;
-						linklist_iter_next( hack );
+						line = linklist_iter_next( hack );
 						linklist_iter_del( hack );
+						free(line);
 					}
 					/* Since we didn't do much with this one, we'll try another pass... */
 				}

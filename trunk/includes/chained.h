@@ -53,6 +53,7 @@ typedef char bool;
 #include <conn_basics.h>
 #include <strings.h>
 #include <support.h>
+#include <socketengines.h>
 
 /*@}*/
 
