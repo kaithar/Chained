@@ -83,7 +83,7 @@ struct connection
 	/** Line read in... */
 	int (*callback_read) (connection *, unsigned char *);
 	/** New connection accepted! */
-	int (*callback_accept) (connection *);
+	int (*callback_accept) (connection *on, connection *newcn);
 	/** Connection closed */
 	int (*callback_close)(connection *);
 	/*@}*/

@@ -151,7 +151,8 @@ void cis_run (void)
 					hack->current = NULL;
 					line = linklist_iter_next( hack );
 					
-					temp->callback_read(temp,line);
+					if (temp->callback_read)
+						temp->callback_read(temp,line);
 					
 					temp->recvq_size -= strlen(line);
 					if (temp->recvq_size < 0)

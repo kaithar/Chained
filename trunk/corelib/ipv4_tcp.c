@@ -13,19 +13,17 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-//port *ipv4_listen(char *ip, int target_port);
-//int ipv4_accept(connection *conn);
+connection *ipv4_tcp_listen(char *name, char *ip, int target_port);
+static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc);
 connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_port);
 int ipv4_tcp_read(connection *, int how_much, char *buffer);
 int ipv4_tcp_write(connection *stream, char *str);
 int ipv4_tcp_close(connection *stream);
 
 
-#if 0
-static port *ipv4_listen(char *target_ip, int target_port)
+connection *ipv4_tcp_listen(char *name, char *target_ip, int target_port)
 {
 	char *ip = "0.0.0.0";
-	port *newPort;
 	connection *conn;
 	struct sockaddr_in our_addr;	/* Target for connection */
 	int flags = 0;
@@ -84,33 +82,30 @@ static port *ipv4_listen(char *target_ip, int target_port)
 	/* Params are file descriptor, check for readable?, check for writable? */
 	socketengine->add(conn, 1, 0);
 
-	conn->doRead = &ipv4_accept;
-	conn->doClose = &ipv4_close;
-
-	conn->freebuf = 0;
-
-	newPort = smalloc(sizeof(port));
-	newPort->conn = conn;
-	newPort->bindip = strdup(ip);
-	newPort->port = target_port;
-
-	conn->port = newPort;
+	conn->name = strdup(name);
+	conn->read = &ipv4_tcp_accept;
+	conn->close = &ipv4_tcp_close;
+	
+	conn->recvq = linklist_create();
+	conn->sendq = linklist_create();
 
 	printf("Bind complete, fd: %d!\n", conn->fd);
 
-	return newPort;
+	return conn;
 }
 
-static int ipv4_accept(connection *conn)
+/**
+ * Because this is a pseudo read abstraction, it must pretend to read data...
+ */
+
+static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc)
 {
 	connection *newStream = NULL;
-	client *newClient = NULL;
 	int flags = 0;
 	unsigned int addrlen = sizeof(struct sockaddr_in);
 	struct sockaddr_in their_addr;
 
 	newStream = smalloc(sizeof(connection));
-	newClient = smalloc(sizeof(client));
 	memset(&their_addr, 0, sizeof(struct sockaddr_in));
 
 	if ((newStream->fd = accept(conn->fd, (struct sockaddr *)&their_addr, &addrlen)) < 0)
@@ -120,39 +115,31 @@ static int ipv4_accept(connection *conn)
 		return 0;
 	}
 	
-	newStream->buffer = smalloc(5000);
-	newStream->freebuf = 5000;
-	newStream->doClose = &ipv4_close;
-	newStream->doRead = &ipv4_read;
-	newStream->write = &ipv4_write;
-	newStream->onRead = &parse_local;
-	newStream->client = newClient;
-	newStream->port = conn->port;
-
-	newClient->conn = newStream;
-	sprintf(newClient->host, "%s", inet_ntoa(their_addr.sin_addr));
-	sprintf(newClient->vhost, "%s", inet_ntoa(their_addr.sin_addr));
-
-	newClient->channels = map_create();
-	map_allow_preset(newClient->channels, ALLOWED_CHAN_CHARS);
-	map_init(newClient->channels);
-
-	assign_id(newClient);
-	newClient->server = me->myserver;
-
+	newStream->name = strdup(conn->name);
+	newStream->read = &ipv4_tcp_read;
+	newStream->write = &ipv4_tcp_write;
+	newStream->close = &ipv4_tcp_close;
+  
+	newStream->recvq = linklist_create();
+	newStream->recvq_buf = smalloc(5000);
+	newStream->recvq_buf_free = 5000;
+  
+	newStream->sendq = linklist_create();
+	newStream->sendq_buf = smalloc(5000);
+	newStream->sendq_buf_free = 5000;
+	
 	/* Make it nonblock and add it to the sockengine */
 	flags = fcntl(newStream->fd, F_GETFL, 0);
 	flags |= O_NONBLOCK;
 	fcntl(newStream->fd, F_SETFL, flags);
+	
 	socketengine->add(newStream, 1, 0);
 	
-	if (conn->port->encAccept != NULL)
-		conn->port->encAccept(newStream);
-
-	return 1;
+	if (conn->callback_accept)
+		conn->callback_accept(conn,newStream);
+	
+	return 0;
 }
-
-#endif
 
 /**
  * @todo Make this properly async!
