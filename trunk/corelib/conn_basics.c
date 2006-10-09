@@ -167,7 +167,7 @@ int cprintf(connection *stream, char *fmt, ...)
 	va_end(argv);
 	
 	/* Try and send it... */
-	if (1||(stream->sendq->members != 0) || (stream->write(stream,sharbuf) == 0))
+	if ((stream->sendq->members != 0) || (stream->write(stream,sharbuf) == 0))
 	{
 		/* Well that didn't work ... better sendq it... */
 		temp = strdup(sharbuf);
