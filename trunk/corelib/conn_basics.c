@@ -44,6 +44,12 @@ void conn_read_to_recvq (connection *cn)
 		
 	while (1)
 	{
+		if (cn->recvq_size > 10000)
+		{
+			/* Um, that's a lot of data ... lets just let that empty a little .... */
+			break;
+		}
+
 		memset(&conn_read_in_temp,0,readin);
 		line = conn_read_in_temp;
 		if ((nbytes = cn->read(cn, readin, conn_read_in_temp)) <= 0) 
@@ -105,7 +111,10 @@ bool conn_send_from_sendq (connection *cn)
 	 */
 	
 	if (cn->sendq->members == 0)
+	{
+		socketengine->mod(cn,0,-1);
 		return 1;
+	}
 	
 	pos = linklist_iter_create( cn->sendq );
 	
@@ -122,6 +131,7 @@ bool conn_send_from_sendq (connection *cn)
 			free(line);
 		}
 		cn->sendq_size = 0;
+		socketengine->mod(cn,0,-1);
 		return 1;
 	}	
 	
@@ -135,6 +145,7 @@ bool conn_send_from_sendq (connection *cn)
 			fprintf(stderr,"Um, negative sendq size?\n");
 		free(line);
 	}
+	socketengine->mod(cn,0,-1);
 	return 1;
 }
 
@@ -144,7 +155,6 @@ bool conn_send_from_sendq (connection *cn)
  */
 
 static char sharbuf[10000];
-extern linklist_root *global_sendq;
 
 int cprintf(connection *stream, char *fmt, ...)
 {
@@ -154,15 +164,20 @@ int cprintf(connection *stream, char *fmt, ...)
 	
 	va_start(argv, fmt);
 	nbytes = vsnprintf(sharbuf, 9999, fmt, argv);
-	temp = strdup(sharbuf);
-	linklist_add(stream->sendq,temp);
-	stream->sendq_size += strlen(temp);
 	va_end(argv);
 	
-	if (stream->sendq->members == 1)
+	/* Try and send it... */
+	if (1||(stream->sendq->members != 0) || (stream->write(stream,sharbuf) == 0))
 	{
-		/* We just added the first line to the sendq ... add it to the global sendq */
-		linklist_add(global_sendq, stream);
+		/* Well that didn't work ... better sendq it... */
+		temp = strdup(sharbuf);
+		linklist_add(stream->sendq,temp);
+		stream->sendq_size += strlen(temp);
+		if (stream->sendq->members == 1)
+		{
+			/* We just added the first line to the sendq ... lets listen for the ability to write */
+			socketengine->mod(stream,0,1);
+		}
 	}
 	
 	return nbytes;

@@ -10,6 +10,7 @@
 #include <sys/select.h>
 
 static int se_s_add(connection *cn, int addread, int addwrite);
+static int se_s_mod(connection *cn, int mod_read, int mod_write);
 static int se_s_del(connection *cn);
 static int se_s_wait(connection *read_events[], connection *write_events[], int howlong);
 
@@ -21,6 +22,7 @@ void cis_load_selectengine (void)
 	// Select module init
 	socketengine = smalloc(sizeof(socket_engine));
 	socketengine->add = &se_s_add;
+	socketengine->mod = &se_s_mod;
 	socketengine->del = &se_s_del;
 	socketengine->wait = &se_s_wait;
 	FD_ZERO(&rfds);
@@ -30,10 +32,55 @@ void cis_load_selectengine (void)
 
 static int se_s_add(connection *cn, int addread, int addwrite) 
 {
-	if (addread) FD_SET(cn->fd, &rfds);
-	if (addwrite) FD_SET(cn->fd, &wfds);
+	if (addread) {
+		FD_SET(cn->fd, &rfds);
+		cn->state.listen_read = 1;
+	}
+	if (addwrite) {
+		FD_SET(cn->fd, &wfds);
+		cn->state.listen_write = 1;
+	}
 	socketengine->cns[cn->fd] = cn;
 	socketengine->fdcount++;
+	return 0;
+}
+
+static int se_s_mod(connection *cn, int mod_read, int mod_write)
+{
+	if (
+			 (socketengine->cns[cn->fd] == NULL) && 
+			 ((mod_read > 0) || (mod_write > 0))
+		 )
+	{
+		socketengine->cns[cn->fd] = cn;
+		socketengine->fdcount++;
+	}
+	if ((mod_read < 0)&&(cn->state.listen_read == 1))
+	{
+		FD_CLR(cn->fd, &rfds);
+		cn->state.listen_read = 0;
+	}
+	else if ((mod_read > 0)&&(cn->state.listen_read == 0))
+	{
+		FD_SET(cn->fd, &rfds);
+		cn->state.listen_read = 1;
+	}
+	
+	if ((mod_write < 0)&&(cn->state.listen_write == 1))
+	{
+		FD_CLR(cn->fd, &wfds);
+		cn->state.listen_write = 0;
+	}
+	else if ((mod_write > 0)&&(cn->state.listen_write == 0))
+	{
+		FD_SET(cn->fd, &wfds);
+		cn->state.listen_write = 1;
+	}
+	if ((cn->state.listen_read == 0) && (cn->state.listen_write == 0))
+	{
+		socketengine->cns[cn->fd] = NULL;
+		socketengine->fdcount--;
+	}
 	return 0;
 }
 
@@ -41,6 +88,8 @@ static int se_s_del(connection *cn)
 {
 	FD_CLR(cn->fd, &rfds);
 	FD_CLR(cn->fd, &wfds);
+	cn->state.listen_read = 0;
+	cn->state.listen_write = 0;
 	socketengine->cns[cn->fd] = NULL;
 	socketengine->fdcount--;
 	return 0;
