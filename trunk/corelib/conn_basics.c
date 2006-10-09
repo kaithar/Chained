@@ -8,6 +8,7 @@
  */
 
 #include <chained.h>
+#include <stdarg.h>		/* va_*() */
 
 /**
  * This buffer is used as a temp read in.
@@ -27,7 +28,7 @@ char conn_read_in_temp[10000];
  * I'm far too lazy to try and keep track of multiple messages in the same block of memory.
  * Honest.
  */
-void conn_read_to_sendq (connection *cn)
+void conn_read_to_recvq (connection *cn)
 {
 	int readin = 0;
 	
@@ -93,4 +94,76 @@ void conn_read_to_sendq (connection *cn)
 			foo = 0;
 		}
 	}
+}
+
+bool conn_send_from_sendq (connection *cn)
+{
+	char *line;
+	linklist_iter *pos;
+	/**
+	 * If there is no sendq, return true so it'll remove it from the global_sendq
+	 */
+	
+	if (cn->sendq->members == 0)
+		return 1;
+	
+	pos = linklist_iter_create( cn->sendq );
+	
+	/**
+	 * If the connection is closed, attempt to empty the sendq.
+	 * Dead connections can recv messages though...
+	 */
+	
+	if (cn->state.closed == 1)
+	{
+		while ((line = linklist_iter_next( pos )) != NULL)
+		{
+			linklist_iter_del(pos);
+			free(line);
+		}
+		cn->sendq_size = 0;
+		return 1;
+	}	
+	
+	while ((line = linklist_iter_next( pos )) != NULL)
+	{
+		if (cn->write(cn,line) == 0)
+			return 0;
+		linklist_iter_del(pos);
+		cn->sendq_size -= strlen(line);
+		if (cn->sendq_size < 0)
+			fprintf(stderr,"Um, negative sendq size?\n");
+		free(line);
+	}
+	return 1;
+}
+
+/* Yeah, this is a plain and simple wrapper.
+ * At some point I'll trial this against a custom printf variation, but for now it'll do.
+ * (cause stuff like channel support is more important)
+ */
+
+static char sharbuf[10000];
+extern linklist_root *global_sendq;
+
+int cprintf(connection *stream, char *fmt, ...)
+{
+	va_list argv;
+	int nbytes = 0;
+	char *temp;
+	
+	va_start(argv, fmt);
+	nbytes = vsnprintf(sharbuf, 9999, fmt, argv);
+	temp = strdup(sharbuf);
+	linklist_add(stream->sendq,temp);
+	stream->sendq_size += strlen(temp);
+	va_end(argv);
+	
+	if (stream->sendq->members == 1)
+	{
+		/* We just added the first line to the sendq ... add it to the global sendq */
+		linklist_add(global_sendq, stream);
+	}
+	
+	return nbytes;
 }

@@ -263,7 +263,7 @@ int ipv4_tcp_write(connection *stream, char *str)
 		}
 		perror("send");
 		stream->close(stream);
-		return -1;
+		return 0;
 	}
 	
 	return nbytes;
@@ -273,9 +273,12 @@ int ipv4_tcp_close(connection *stream)
 {
 	if (stream->state.closed == 0)
 	{
+		if (stream->callback_close)
+			stream->callback_close(stream);
 		if (stream->enc_close)
 			stream->enc_close(stream);
 		stream->state.closed = 1;
+		socketengine->del(stream);
 		return close(stream->fd);
 	}
 

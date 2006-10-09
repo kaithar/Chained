@@ -31,6 +31,12 @@ socket_engine *socketengine = NULL;
 connection *connections[__MAXFDS__];
 
 /**
+ * @brief Hack! This is a list of connections with data waiting to be sent...
+ * @internal
+ */
+ linklist_root *global_sendq = NULL;
+
+/**
  * @brief I try to make sure we're dropping cores...
  * This function attempts to make sure we drop cores.
  * Should it fail, it will generate an error to the stderr.
@@ -70,6 +76,8 @@ void cis_init (void)
 	
 	srand(time(0));
 	memset(connections,0,sizeof(connections));
+	
+	global_sendq = linklist_create();
 	
 	initd = 1;
 }
@@ -118,7 +126,7 @@ void cis_run (void)
 		for(i = 0; i < eventcount; i++) {
 			if (read_events[i] != NULL)
 			{
-				conn_read_to_sendq(read_events[i]);
+				conn_read_to_recvq(read_events[i]);
 				linklist_add(global_recvq, read_events[i]);
 				/* Don't wait for data! too much to do! */
 				patience = 0;
@@ -181,6 +189,21 @@ void cis_run (void)
 					}
 					/* Since we didn't do much with this one, we'll try another pass... */
 				}
+			}
+		}
+		
+		/**
+		 * This is a hack to provide a temporary sendq facility...
+		 * this needs to be remove when proper write testing is writen in the to the socket engine.
+		 */
+		hack->list = global_sendq;
+		hack->current = NULL;
+		while ((temp = linklist_iter_next(hack)) != NULL)
+		{
+			if (conn_send_from_sendq (temp) != 0)
+			{
+				/** If it returns a 0, then it still has data to send ... anything else indicates sending complete. */
+				linklist_iter_del( hack );
 			}
 		}
 		
