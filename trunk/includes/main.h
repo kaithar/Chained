@@ -10,6 +10,6 @@ extern socket_engine *socketengine;
 
 extern void cis_drop_cores (void);
 extern void cis_init (void);
-extern void cis_start (void);
+extern void cis_run (void);
 
 #endif

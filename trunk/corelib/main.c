@@ -8,6 +8,7 @@
 
 #include "chained.h"
 #include <sys/resource.h> /* For rlimit stuff */
+#include <string.h>
 
 /**
  * @brief I am set by config param "debug"
@@ -87,7 +88,7 @@ void cis_init (void)
  * -# Write a fifo list so the hack used for recvq/sendq can be nuked!
  */
 
-void cis_start (void)
+void cis_run (void)
 {
 	int i = 0;
 	int eventcount = 0;
@@ -103,9 +104,6 @@ void cis_start (void)
 	char *line;
 	
 	int patience = 250;
-	
-	if (socketengine == NULL)
-		cis_load_selectengine();
 	
 	global_recvq = linklist_create();
 	global_recvq_start = linklist_iter_create( global_recvq );
@@ -186,7 +184,7 @@ void cis_start (void)
 			}
 		}
 		
-		processTimers();
+		//processTimers();
 	}
 	return;
 }

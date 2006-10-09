@@ -79,9 +79,9 @@ void conn_read_to_sendq (connection *cn)
 				{
 					if (*line != '\0') 
 					{
+						cn->recvq_size += ((next - line) - 1);
 						line = strdup(line);
 						linklist_add(cn->recvq,line);
-						cn->recvq_size += ((next - line) - 1);
 					}
 				}
 				line = next;

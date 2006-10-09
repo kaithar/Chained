@@ -207,9 +207,11 @@ connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_p
 	conn->write = &ipv4_tcp_write;
 	conn->close = &ipv4_tcp_close;
   
+	conn->recvq = linklist_create();
 	conn->recvq_buf = smalloc(5000);
 	conn->recvq_buf_free = 5000;
   
+	conn->sendq = linklist_create();
 	conn->sendq_buf = smalloc(5000);
 	conn->sendq_buf_free = 5000;
 	

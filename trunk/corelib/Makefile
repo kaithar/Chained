@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -export-dynamic -g -fPIC -pipe -I../includes/
 LIBS = -lm -lc -ldl
 
-OBJS = conn_basics.o main.o strings.o linklist.o map.o se_select.o ipv4_tcp.o
+OBJS = conn_basics.o main.o strings.o linklist.o map.o se_select.o ipv4_tcp.o support.o
 
 INCS = ../includes/chained.h
 
