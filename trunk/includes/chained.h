@@ -55,6 +55,7 @@ typedef char bool;
 #include <support.h>
 #include <socketengines.h>
 #include <ipv4.h>
+#include <config_reading.h>
 
 /*@}*/
 

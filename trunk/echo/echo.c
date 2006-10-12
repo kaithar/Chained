@@ -27,6 +27,8 @@ int main ()
 	cis_init();
 	cis_load_selectengine();
 	
+	cis_load_config("test.conf");
+	
 	test = ipv4_tcp_listen("test","192.168.0.70",2335);
 	
 	if (test != NULL)
