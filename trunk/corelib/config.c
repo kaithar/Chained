@@ -12,6 +12,108 @@
 int inc_line_num () {}
 int getLineNum() {}
 
+static int singlelinecomment(FILE *configfile);
+static int multilinecomment(FILE *configfile);
+
+static char config_get_char (FILE *configfile, bool skip_whitespace)
+{
+	static bool inquotes = false;
+	static char quotechar = '\0';
+	static int escaped = 0;
+	char c,c2;
+	
+	while (1)
+	{
+		c = getc(configfile);
+		
+		/* \ sets escaped to 2, the next char has escaped 1, the one after escaped 0 */
+		if (--escaped < 0)
+			escaped = 0;
+		
+		switch (c)
+		{
+			case '\\':
+				if (escaped == 0)
+					escaped = 2;
+				return c;
+				
+			case '\n':
+			case '\r':
+			case ' ':
+			case '\t':
+				/**
+				 * This case allows for skipping any whitespace it comes across
+				 * This is especially usful for the begining of the line.
+				 */
+				if (skip_whitespace == true)
+					break;
+				else
+					return c;
+				
+			case '"':
+			case '\'':
+				/**
+				 * In addition to returning the quote, manage our internal quote state
+				 */
+				if (escaped == 0)
+				{
+					if (inquotes == true)
+					{
+						if (quotechar == c)
+							inquotes = 0;
+					}
+					else
+					{
+						inquotes = 1;
+						quotechar = c;
+					}
+				}
+				return c;
+				
+			case '#':
+				/**
+				 * Skip comments initiated with a #
+				 */
+				if (inquotes == true)
+					return c;
+				else
+				{
+					singlelinecomment(configfile);
+					break;
+				}
+				
+			case '/':
+				/**
+				 * Skip comments initiated with // or /*
+				 */
+				if (inquotes == true)
+				{
+					return c;
+				}
+				else
+				{
+					c2 = getc (configfile);
+					if (c2 == '/')
+						singlelinecomment(configfile);
+					else if (c2 == '*')
+						multilinecomment(configfile);
+					else
+					{
+						ungetc(c2,configfile);
+						return c;
+					}
+					break;
+				}
+				
+			default:
+				/**
+				 * Plain return any char we don't want to bother about
+				 */
+				return c;
+		}
+	}
+}
+
 static int singlelinecomment(FILE *configfile)
 {
 	/* This function reads to the end of the line then returns the bytes read. */
@@ -71,6 +173,7 @@ static int read_text_block (FILE *configfile, linklist_root *list)
 	char *val;
 	char in;
 	bool readinline = 1;
+	bool skip_whitespace = 1;
 		
 	/**
 	 * Just read in \n delimited lines ... return on }
@@ -84,7 +187,9 @@ static int read_text_block (FILE *configfile, linklist_root *list)
 
 		while (readinline)
 		{
-			in = getc(configfile);
+			in = config_get_char(configfile, skip_whitespace);
+			skip_whitespace = 0;
+			
 			switch (in)
 			{
 				case EOF:
@@ -102,6 +207,7 @@ static int read_text_block (FILE *configfile, linklist_root *list)
 					/* \n and \r are end of line ... } is end of line and return */
 				case '\n':
 				case '\r':
+					skip_whitespace = 1;
 				case '}':
 					*(c++) = '\0';
 					if (*buf != '\0')
@@ -113,7 +219,7 @@ static int read_text_block (FILE *configfile, linklist_root *list)
 					
 					/* Escaping ... \ before end of line ignores the \n, all other combinations print the literals */
 				case '\\':
-					in = getc(configfile);
+					in = config_get_char(configfile,false);
 					if (in == EOF)
 					{
 						printf("Unexpected EOF\n");
@@ -122,37 +228,14 @@ static int read_text_block (FILE *configfile, linklist_root *list)
 					if ((in == '\n')||(in == '\r'))
 					{
 						while ((in == '\n')||(in == '\r'))
-							in = getc(configfile);
+							in = config_get_char(configfile,false);
 						ungetc(in,configfile);
 						break;
 					}
 					*(c++) = in;
 					break;
 					
-					/* Comment handling */
-				case '#':
-					singlelinecomment(configfile);
-					break;
-				case '/':
-					in = getc(configfile);
-					if (in == '/')
-					{
-						singlelinecomment(configfile);
-						break;
-					}
-					else if (in == '*')
-					{
-						multilinecomment(configfile);
-						break;
-					}
-					else
-					{
-						/* HOLD UP! YOU'RE NO COMMENT! *huff* */
-						ungetc(in, configfile);
-						in = '/';
-					}
-					
-					/* Everything else: print it! */
+				/* Everything else: print it! */
 				default:
 					*(c++) = in;
 			}
@@ -705,6 +788,13 @@ int cis_load_config(unsigned char *filename)
 	list = linklist_create();
 	
 	configfile = fopen(filename, "r");
+	
+	if (configfile == NULL)
+	{
+		fprintf(stderr,"Unable to open %s for reading.\n",filename);
+		linklist_free(list);
+		return 0;
+	}
 	
 	read_text_block (configfile, list);
 	
