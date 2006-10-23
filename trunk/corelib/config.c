@@ -244,10 +244,8 @@ static int read_text_block (FILE *configfile, linklist_root *list)
 }
 
 #if 0
-
-int read_keyed_block (FILE *configfile, config_context *context, bool included)
+int read_keyed_block (FILE *configfile, map_root *map, bool included)
 {
-	int iCdepth;
 	int (*keyword_handler)() = NULL;
 	int breakout = 0;
 	int nbytes = 0;
@@ -257,18 +255,11 @@ int read_keyed_block (FILE *configfile, config_context *context, bool included)
 	unsigned char *value = NULL;
 	char *dupvalue = NULL;
 	int matchchar = ' ';	/* by default we're looking for a word. */
-	config_context *nested = NULL;
+	//config_context *nested = NULL;
 
 	/* Decrease when we return; */
 	Cdepth++;
 	iCdepth = Cdepth;	/* This is the inital value ... the idea being that when iCdepth == Cdepth we're at the same point we started at. */
-	if (included != true)
-	{
-		if (context->text_block != true)
-			context->values = map_create_init_from_preset(MAP_ALLOW_AZ09_SPACE_CI);
-		else
-			context->block = linklist_create();
-	}
 
 	while (1)
 	{
@@ -285,46 +276,35 @@ int read_keyed_block (FILE *configfile, config_context *context, bool included)
 		*/
 		while (1)
 		{
-			in = getc(configfile);
+			in = config_get_char(configfile,true);
 
 			switch (in)
 			{
 				case EOF:
 					/* Return; */
-					if ((Cdepth == iCdepth) && (included == 1))
-					{
-						Cdepth--;
+					if (included == 1)
 						return 1;
-					}
 					else
 					{
-						printf("Unexpected EOF\n");
+						fprintf(stderr,"Unexpected EOF\n");
 						exit(1);
 					}
-
+					
 					/* Open and close blocks */
-				case '{': case '(':
+//				case '{': case '(':
 					/* Opening block, recurse! */
-					readBlock(configfile, context, 0);
-					break;
+//					readBlock(configfile, context, 0);
+//					break;
 				case '}': case ')':
 					/* Closing character, callback and return! */
 					if (included == 0)
-					{
-						if (context->final_handler != NULL)
-							context->final_handler(context);
-					
-						context_free_instants(context);
-						Cdepth--;
-						
 						return 1;
-					}
 					else
 					{
 						printf("Unexpected }\n");
 						exit(1);
 					}
-
+					
 					/* Characters that should not be here! */
 				case '<':
 					/* Variable, disallowed */
@@ -336,50 +316,21 @@ int read_keyed_block (FILE *configfile, config_context *context, bool included)
 					/* Assignment, disallowed */
 					printf("Unexpected %c, Expected keyword\n", in);
 					exit(1);
-
-					/* Comments, skip over and keep looping */
-				case '#':
-					singlelinecomment(configfile);
-					break;
-				case '/':
-					in = getc(configfile);
 					
-					if (in == '/')
-						singlelinecomment(configfile);
-					else if (in == '*')
-						multilinecomment(configfile);
-					else
-					{
-						/* HOLD UP! YOU'RE NO COMMENT! *huff* */
-						ungetc(in, configfile);
-						in = '/';
-						matchchar = ' ';
-						breakout = 1;
-					}
+				/* Considered to be white space */
+				case ';':
+					break;
 					
-					break;
-
-					/* Whitespace, ignore and keep looping */
-				case '\n': case '\r':
-					inc_line_num();
-				case '\t': case ' ': case ';':
-					break;
-
 					/* These cases are correct and indicate start of keywords! */
 				case '\'': case '"':
-					if (context->text_block != true)
-					{
-						/*
-						* We don't paticularly care about the match char if it's a text block
-						* since if it is a text block, we won't be reading a keyword.
-						* Otherwise this is a quoted keyword ... weird, but allowed
-						*/
-						matchchar = in;
-						in = getc(configfile);
-						breakout = 1;
+					/*
+					 * This is a quoted keyword ... weird, but allowed
+					 */
+					matchchar = in;
+					in = config_get_char(configfile,false);
+					breakout = 1;
+					break;
 					
-						break;
-					}
 				default:
 					matchchar = ' ';
 					breakout = 1;
@@ -389,196 +340,175 @@ int read_keyed_block (FILE *configfile, config_context *context, bool included)
 				break;
 		}
 		breakout = 0;
-
+		
 		/*
 		* should be the begining of the keyword
 		* if it's a block start key, recurse with no change of context ...
 		* otherwise read the string in.
 		*/
-
-		/* If this is a text block (a la admin {}) we don't read a keyword, just a value... */
-		if (context->text_block != true)
-		{
-			/* First unget so the first get is the first char of the keyword ... */
-			ungetc(in, configfile);
-			/*
-			* Now read!
-			* We do it this way so we can place the reading and length tests at the begining and thus avoid any unpleasent bugs
-			*/
-			while (1)
-			{
-				/* This point is reached at the begining of each word (for non quoted keywords) */
-				while (1)
-				{
-					if (nbytes >= 999)
-					{
-						printf("Keyword too big!\n");
-						exit(1);
-					}
 		
-					in = getc(configfile);
-					
-					/* Loop over characters in word */
-					breakout = 0;
-					switch (in)
-					{
-						case EOF:
-							printf("Unexpected EOF\n");
-							exit(1);
-						case '#':
-							/* Comment, read rest of line */
-							if (matchchar == ' ')
-								singlelinecomment(configfile);
-							else
-							{
-								*(c++) = in;
-								nbytes++;
-							}
-					
-							break;
-						case '/':
-							/* Possible comment ... allow / in keywords for now. */
-							if (matchchar == ' ')
-							{
-								in = getc(configfile);
-								if (in == '/')
-									singlelinecomment(configfile);
-								else if (in == '*')
-									multilinecomment(configfile);
-								else
-								{
-									*(c++) = '/';
-									ungetc(in, configfile);
-									nbytes++;
-								}
-							}
-							else
-							{
-								*(c++) = in;
-								nbytes++;
-							}
-							
-							break;
-						case '(': case '{': case '[': case '<':
-						case ')': case '}': case ']': case '>':
-							printf("Character %c is not allowed in keywords!\n", in);
-							exit(1);
-						case ';': case ':': case '=':
-							ungetc(in, configfile);
-							if (matchchar != ' ')
-							{
-								printf("Character %c is not allowed in keywords!\n", in);
-								exit(1);
-							}
-					
-							/* Ordering of \n \r \t default is important! */
-						case '\n': case '\r':
-							if ((in == '\n') || (in == '\r'))
-								inc_line_num();
-						case '\t':
-							if (matchchar == ' ')
-								in = ' ';
-						default:
-							if (in == matchchar)
-							{
-								breakout = 1;
-								break;
-							}
-							
-							*(c++) = in;
-							nbytes++;
-					}
-					if (breakout == 1)
-						break;
-				}
-				breakout = 0;
-				*c = '\0';
-
-				if (map_find(context->keywords, buf) != NULL)
-				{
-					/* This is a valid keyword */
-					c++;
-					nbytes++;
-					break;
-				}
-				else
-				{
-					/* This is not a valid keyword. */
-					in = getc(configfile);
-				
-					if ((matchchar == ' ') && (in != ';') && (in != ':') && (in != '='))
-					{
-						*(c++) = ' ';
-						nbytes++;
-						ungetc(in, configfile);
-						continue;
-					}
-					else
-					{
-						printf("Unknown keyword '%s'\n", buf);
-						exit(1);
-					}
-				}
-				/* End of "word" loop */
-			}
-
-			/*
-			* At this point we have a valid keyword in buffer, now we need to find the value
-			* More whitespace strip!
-			*/
+		/* First unget so the first get is the first char of the keyword ... */
+		ungetc(in, configfile);
+		/*
+		* Now read!
+		* We do it this way so we can place the reading and length tests at the begining and thus avoid any unpleasent bugs
+		*/
+		while (1)
+		{
+			/* This point is reached at the begining of each word (for non quoted keywords) */
 			while (1)
 			{
+				if (nbytes >= 999)
+				{
+					printf("Keyword too big!\n");
+					exit(1);
+				}
+	
 				in = getc(configfile);
-
+				
+				/* Loop over characters in word */
+				breakout = 0;
 				switch (in)
 				{
 					case EOF:
 						printf("Unexpected EOF\n");
 						exit(1);
 					case '#':
-						singlelinecomment(configfile);
-						break;
-					case '/':
-						in = getc(configfile);
-						if (in == '/')
+						/* Comment, read rest of line */
+						if (matchchar == ' ')
 							singlelinecomment(configfile);
-						else if (in == '*')
-							multilinecomment(configfile);
 						else
 						{
-							ungetc(in, configfile);
-							in = '/';
-							breakout = 1;
+							*(c++) = in;
+							nbytes++;
 						}
 				
 						break;
-					case '\n': case '\r':
-						inc_line_num();
-					case '\t': case ' ': case ':': case '=':
+					case '/':
+						/* Possible comment ... allow / in keywords for now. */
+						if (matchchar == ' ')
+						{
+							in = getc(configfile);
+							if (in == '/')
+								singlelinecomment(configfile);
+							else if (in == '*')
+								multilinecomment(configfile);
+							else
+							{
+								*(c++) = '/';
+								ungetc(in, configfile);
+								nbytes++;
+							}
+						}
+						else
+						{
+							*(c++) = in;
+							nbytes++;
+						}
+						
 						break;
+					case '(': case '{': case '[': case '<':
+					case ')': case '}': case ']': case '>':
+						printf("Character %c is not allowed in keywords!\n", in);
+						exit(1);
+					case ';': case ':': case '=':
+						ungetc(in, configfile);
+						if (matchchar != ' ')
+						{
+							printf("Character %c is not allowed in keywords!\n", in);
+							exit(1);
+						}
+				
+						/* Ordering of \n \r \t default is important! */
+					case '\n': case '\r':
+						if ((in == '\n') || (in == '\r'))
+							inc_line_num();
+					case '\t':
+						if (matchchar == ' ')
+							in = ' ';
 					default:
-						breakout = 1;
+						if (in == matchchar)
+						{
+							breakout = 1;
+							break;
+						}
+						
+						*(c++) = in;
+						nbytes++;
 				}
-				if (breakout)
+				if (breakout == 1)
 					break;
 			}
 			breakout = 0;
+			*c = '\0';
 
-			if (in == ';')
+			if (map_find(context->keywords, buf) != NULL)
 			{
-				/* End of command, but no value.  Store "1" as the value. */
-				dupvalue = strdup("1");
-				map_add(context->values, buf, dupvalue);
-				keyword_handler = map_find(context->keyword_callbacks, buf);
-
-				if (keyword_handler != NULL)
-					keyword_handler(context, dupvalue);
-				
-				continue;
+				/* This is a valid keyword */
+				c++;
+				nbytes++;
+				break;
 			}
-		}		/* End of if (context->text_block != true) */
+			else
+			{
+				/* This is not a valid keyword. */
+				in = getc(configfile);
+			
+				if ((matchchar == ' ') && (in != ';') && (in != ':') && (in != '='))
+				{
+					*(c++) = ' ';
+					nbytes++;
+					ungetc(in, configfile);
+					continue;
+				}
+				else
+				{
+					printf("Unknown keyword '%s'\n", buf);
+					exit(1);
+				}
+			}
+			/* End of "word" loop */
+		}
 
-		if ((context->text_block != true) && ((in == '{') || (in == '(')))
+		/*
+		* At this point we have a valid keyword in buffer, now we need to find the value
+		* More whitespace strip!
+		*/
+		while (1)
+		{
+			in = getc(configfile);
+
+			switch (in)
+			{
+				case EOF:
+					printf("Unexpected EOF\n");
+					exit(1);
+				case '\n': case '\r':
+					inc_line_num();
+				case '\t': case ' ': case ':': case '=':
+					break;
+				default:
+					breakout = 1;
+			}
+			if (breakout)
+				break;
+		}
+		breakout = 0;
+
+		if (in == ';')
+		{
+			/* End of command, but no value.  Store "1" as the value. */
+			dupvalue = strdup("1");
+			map_add(context->values, buf, dupvalue);
+			keyword_handler = map_find(context->keyword_callbacks, buf);
+
+			if (keyword_handler != NULL)
+				keyword_handler(context, dupvalue);
+			
+			continue;
+		}
+
+		if ((in == '{') || (in == '('))
 		{
 			/* Value is a nested block. */
 			nested = map_find(context->child_context, buf);
@@ -609,11 +539,9 @@ int read_keyed_block (FILE *configfile, config_context *context, bool included)
 				matchchar = in;	/* Value is a quoted string! */
 				in = getc(configfile);
 			}
-			else if (context->text_block == true)
-				matchchar = ';';
 			else
 				matchchar = ' ';
-
+			
 			value = c;
 			/* Ok, read it in */
 			while (1)
@@ -625,40 +553,6 @@ int read_keyed_block (FILE *configfile, config_context *context, bool included)
 					case EOF:
 						printf("Unexpected EOF\n");
 						exit(1);
-					case '#':
-						/* Comment */
-						if (matchchar == ' ')
-							singlelinecomment(configfile);
-						else
-						{
-							*(c++) = in;
-							nbytes++;
-						}
-
-						break;
-					case '/':
-						/* Possible comment */
-						if (matchchar == ' ')
-						{
-							in = getc(configfile);
-							if (in == '/')
-								singlelinecomment(configfile);
-							else if (in == '*')
-								multilinecomment(configfile);
-							else
-							{
-								*(c++) = '/';
-								ungetc(in, configfile);
-								nbytes++;
-							}
-						}
-						else
-						{
-							*(c++) = in;
-							nbytes++;
-						}
-						
-						break;
 					case ';':
 						if ((matchchar == ' ') || (matchchar == ';'))
 							ungetc(in, configfile);
@@ -689,30 +583,20 @@ int read_keyed_block (FILE *configfile, config_context *context, bool included)
 				}
 				in = getc(configfile);
 			}
-
+			
 			*c = '\0';
-
+			
 			/* Value should now be complete! */
 			dupvalue = strdup((char *)value);
-
-			if (context->text_block != true)
-			{
-				if (DEBUG)
-					printf("%s:%d %s:%s\n", get_config_file(), get_line_num(), buf, value);
-
-				map_add(context->values, buf, dupvalue);
-				keyword_handler = map_find(context->keyword_callbacks, buf);
-				
-				if (keyword_handler != NULL)
-					keyword_handler(context, dupvalue);
-			}
-			else
-			{	/* Text block ... */
-				if (DEBUG)
-					printf("%s:%d %s\n", get_config_file(), get_line_num(), value);
-				
-				linklist_add(context->block, dupvalue);
-			}
+			
+			if (DEBUG)
+				printf("%s:%d %s:%s\n", get_config_file(), get_line_num(), buf, value);
+			
+			map_add(context->values, buf, dupvalue);
+			keyword_handler = map_find(context->keyword_callbacks, buf);
+			
+			if (keyword_handler != NULL)
+				keyword_handler(context, dupvalue);
 			/* End of value grabber! */
 		}
 
@@ -728,24 +612,6 @@ int read_keyed_block (FILE *configfile, config_context *context, bool included)
 				case EOF:
 					printf("Unexpected EOF\n");
 					exit(1);
-				case '#':
-					singlelinecomment(configfile);
-					break;
-				case '/':
-					in = getc(configfile);
-				
-					if (in == '/')
-						singlelinecomment(configfile);
-					else if (in == '*')
-						multilinecomment(configfile);
-					else
-					{
-						ungetc(in, configfile);
-						in = '/';
-						breakout = 1;
-					}
-					
-					break;
 					
 					/* Case ordering important! */
 				case '\n': case '\r':
@@ -777,6 +643,7 @@ int read_keyed_block (FILE *configfile, config_context *context, bool included)
 }
 
 #endif
+
 
 int cis_load_config(unsigned char *filename)
 {
