@@ -18,6 +18,9 @@ static int multilinecomment(FILE *configfile);
 static void cis_config_include(FILE *configfile, cis_config_node *context);
 static void cis_process_block (FILE *configfile, cis_config_node *context, bool included);
 
+/**
+ * Encapsulate getc() to simplify filtering out comments
+ */
 
 static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_eof)
 {
@@ -124,6 +127,10 @@ static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_
 	}
 }
 
+/**
+ * Read though til the end of the line.
+ */
+
 static int singlelinecomment(FILE *configfile)
 {
 	/* This function reads to the end of the line then returns the bytes read. */
@@ -145,9 +152,11 @@ static int singlelinecomment(FILE *configfile)
 	return nbytes;
 }
 
+/**
+ * This function reads to the next *\/ then returns the bytes read.
+ */
 static int multilinecomment(FILE *configfile)
 {
-	/* This function reads to the next *\/ then returns the bytes read. */
 	int nbytes = 0;
 	char c = ' ';
 	int splat = 0;
@@ -174,6 +183,10 @@ static int multilinecomment(FILE *configfile)
 	
 	return nbytes;
 }
+
+/**
+ * Open a new file and read it in.
+ */
 
 static void cis_config_include(FILE *configfile, cis_config_node *context)
 {
@@ -251,7 +264,12 @@ static void cis_config_include(FILE *configfile, cis_config_node *context)
 	}
 	
 	cis_process_block(newfile,context,true); // Last param controls handling of EOF
+	fclose(newfile);
 }
+
+/**
+ * Convert a block in to nodes on the tree
+ */
 
 static void cis_process_block (FILE *configfile, cis_config_node *context, bool included)
 {
@@ -457,7 +475,9 @@ static void cis_process_block (FILE *configfile, cis_config_node *context, bool 
 	} /* End of reading entities loop */
 }
 
-/* Debug code... */
+/**
+ * Debug code... 
+ */
 
 static void print_dots (int i)
 {
@@ -498,6 +518,10 @@ static void print_tree (cis_config_node *tree)
 
 /**************/
 
+/**
+ * Public function used to load and interpret a config file.
+ */
+
 int cis_load_config(unsigned char *filename)
 {
 	FILE *configfile = NULL;
@@ -522,5 +546,6 @@ int cis_load_config(unsigned char *filename)
 	
 	print_tree(tree);
 	
+	fclose(configfile);	
 	exit(0);
 }
