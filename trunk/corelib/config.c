@@ -114,6 +114,64 @@ static char config_get_char (FILE *configfile, bool skip_whitespace)
 	}
 }
 
+static char *config_read_entity (FILE *configfile, char *buffer)
+{
+	char in;
+	char *c = buffer;
+	
+	char matchchar = ' ';
+	
+	in = config_get_char(configfile, true);
+	
+	switch (in)
+	{
+		case EOF:
+			/**
+			 * First char EOF means returning NULL
+			 */
+			return NULL;
+		case '\'':
+		case '"':
+			matchchar = in;
+			in = config_get_char(configfile,false);
+			break;
+			
+		default:
+			matchchar = ' ';
+			
+	}
+	
+	while (1)
+	{
+		switch (in)
+		{
+			case EOF:
+				ungetc(in,configfile);
+				*c = '\0';
+				return c;
+				
+			case '\t':
+			case '\n':
+			case '\r':
+			case ' ':
+				if (matchchar == ' ')
+					in = ' ';
+			case '\'':
+			case '\"':
+				if (matchchar == in)
+				{
+					*c = '\0';
+					return c;
+				}
+				*(c++) = in;
+				break;
+			default:
+				
+			
+		}
+	}
+}
+
 static int singlelinecomment(FILE *configfile)
 {
 	/* This function reads to the end of the line then returns the bytes read. */
