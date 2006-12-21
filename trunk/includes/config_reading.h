@@ -22,13 +22,13 @@ struct cis_config_node {
 struct cis_handler_node {
 	unsigned char *name;
 	cis_handler_node *parent;
-	void (*handler)(cis_config_node *node);
+	int (*handler)(cis_config_node *node); /* Returns 0 if sucessful, anything else supresses child processing */
 	void (*delete_callback)(cis_handler_node *location);
 	map_root *children;
 };
 
 extern int cis_load_config(unsigned char *filename);
-extern cis_handler_node *cis_config_add_handler(cis_handler_node *location, unsigned char *name, void (*handler)(cis_config_node *node), void (*delete_callback)(cis_handler_node *location));
+extern cis_handler_node *cis_config_add_handler(cis_handler_node *location, unsigned char *name, int (*handler)(cis_config_node *node), void (*delete_callback)(cis_handler_node *location));
 extern void cis_config_del_handler(cis_handler_node *location);
 
 #endif

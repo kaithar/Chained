@@ -566,7 +566,7 @@ cis_handler_node *cis_config_handler_root = NULL;
 /**
  * Add a handler to the tree
  */
-cis_handler_node *cis_config_add_handler (cis_handler_node *location, unsigned char *name, void (*handler)(cis_config_node *node), void (*delete_callback)(cis_handler_node *location))
+cis_handler_node *cis_config_add_handler (cis_handler_node *location, unsigned char *name, int (*handler)(cis_config_node *node), void (*delete_callback)(cis_handler_node *location))
 {
 	cis_handler_node *temp = NULL;
 	
@@ -646,6 +646,7 @@ static void cis_config_interpret_tree (cis_config_node *tree, cis_handler_node *
 	linklist_iter *iter = NULL;
 	cis_config_node *child = NULL;
 	cis_handler_node *handler = NULL;
+	int descent;
 	
 	if ((tree == NULL)||(context == NULL))
 		return;
@@ -653,14 +654,15 @@ static void cis_config_interpret_tree (cis_config_node *tree, cis_handler_node *
 	iter = linklist_iter_create(tree->children);
 	while (child = linklist_iter_next(iter))
 	{
+		descent = 0;
 		handler = NULL;
 		handler = map_find(context->children,child->name);
 		if (handler)
 		{
 			if (handler->handler)
-				handler->handler(child);
+				descent = handler->handler(child);
 				
-			if (child->block)
+			if ((child->block)&&(descent == 0))
 				cis_config_interpret_tree(child,handler);
 		}
 	}
@@ -740,5 +742,6 @@ int cis_load_config(unsigned char *filename)
 	cis_config_nuke_tree(tree);
 	fclose(configfile);	
 	free(cis_config_file);
-	exit(0);
+	
+	return 1;
 }

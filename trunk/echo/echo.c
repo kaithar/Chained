@@ -19,9 +19,10 @@ int accept_callback (connection *parent, connection *cn)
 	cprintf(cn,"Hi there!\n");
 }
 
-void testcallback (cis_config_node *test)
+int testcallback (cis_config_node *test)
 {
 	printf("Callback for %s\n",test->name);
+	return 0;
 }
 
 void testdelcallback (cis_handler_node *test)
