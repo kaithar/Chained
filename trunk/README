@@ -1,0 +1,36 @@
+
+ Chained In Sanity
+===================
+
+Core Library support:
+- Config system basics
+- Connection abstractions for tcp on ipv4
+- Linked list abstractions
+- Map abstractions
+- Select socket engine
+- Core dropping
+- Line breaker function
+- Safe Malloc
+
+In no real order... Stuff to do:
+- Proper Fifo/Stack support (not linklist hacks)
+- Select engine
+- SSL
+- UDP abstractions
+- ipv6
+- Events
+- Timers
+- Modules
+- File streams/process support
+- Base64 encoding
+- Globs
+- Regex perhaps?
+- Flexible atoi?
+
+Protocol support Libs
+- IRC
+- SMTP
+- POP
+- IMAP
+- Some sort of RPC
+- HTTP
