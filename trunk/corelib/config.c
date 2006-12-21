@@ -518,6 +518,116 @@ static void print_tree (cis_config_node *tree)
 
 /**************/
 
+cis_handler_node *cis_config_handler_root = NULL;
+
+/**
+ * Add a handler to the tree
+ */
+cis_handler_node *cis_config_add_handler (cis_handler_node *location, unsigned char *name, void (*handler)(cis_config_node *node), void (*delete_callback)(cis_handler_node *location))
+{
+	cis_handler_node *temp = NULL;
+	
+	if (cis_config_handler_root == NULL)
+	{
+		cis_config_handler_root = smalloc(sizeof(cis_handler_node));
+		cis_config_handler_root->children = map_create_init_from_preset(MAP_ALLOW_AZ09_SPACE_CI);
+	}
+
+	if (location == NULL)
+		location = cis_config_handler_root;
+	
+	if (name == NULL)
+	{
+		printf("\nFatal Error: cis_config_add_handler called with empty name\nTerminating\n");
+		exit(1);
+	}
+	
+	temp = smalloc(sizeof(cis_handler_node));
+	temp->name = strdup(name);
+	temp->parent = location;
+	temp->handler = handler;
+	if (delete_callback)
+		temp->delete_callback = delete_callback;
+
+	temp->children = map_create_init_from_preset(MAP_ALLOW_AZ09_SPACE_CI);
+	map_add(location->children, name, temp);
+	return temp;
+}
+
+/**
+ * Delete a handler and all it's children from the tree
+ */
+
+static void cis_config_del_child_handler(cis_handler_node *location)
+{
+	map_iter *iter = NULL;
+	cis_handler_node *temp = NULL;
+	
+	if ((cis_config_handler_root == NULL)||(location == NULL))
+		return;
+	
+	if (location->delete_callback)
+		location->delete_callback(location);
+	
+	if (location->children->root.children > 0)
+	{
+		iter = map_iter_create(location->children);
+		while (temp = map_iter_next(iter))
+		{
+			cis_config_del_child_handler(temp);
+			map_iter_del(iter);
+			free(temp);
+		}
+		map_iter_free(iter);
+	}
+	
+	map_free(location->children);
+	free(location->name);
+	return;
+}
+
+void cis_config_del_handler(cis_handler_node *location)
+{
+	map_del(location->parent->children, location->name);
+	cis_config_del_child_handler(location);
+	free(location);
+	return;
+}
+
+/**
+ * Attempt to interpret tree
+ */
+ 
+static void cis_config_interpret_tree (cis_config_node *tree, cis_handler_node *context)
+{
+	linklist_iter *iter = NULL;
+	cis_config_node *child = NULL;
+	cis_handler_node *handler = NULL;
+	
+	if ((tree == NULL)||(context == NULL))
+		return;
+	
+	iter = linklist_iter_create(tree->children);
+	while (child = linklist_iter_next(iter))
+	{
+		handler = NULL;
+		handler = map_find(context->children,child->name);
+		if (handler)
+		{
+			if (handler->handler)
+				handler->handler(child);
+				
+			if (child->block)
+				cis_config_interpret_tree(child,handler);
+		}
+	}
+	linklist_iter_free(iter);
+		
+	return;
+}
+
+/**************/
+
 /**
  * Public function used to load and interpret a config file.
  */
@@ -545,6 +655,8 @@ int cis_load_config(unsigned char *filename)
 	cis_process_block(configfile,tree,true); // Last param controls handling of EOF
 	
 	print_tree(tree);
+	
+	cis_config_interpret_tree(tree,cis_config_handler_root);
 	
 	fclose(configfile);	
 	exit(0);

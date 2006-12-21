@@ -19,16 +19,30 @@ int accept_callback (connection *parent, connection *cn)
 	cprintf(cn,"Hi there!\n");
 }
 
+void testcallback (cis_config_node *test)
+{
+	printf("Callback for %s\n",test->name);
+}
+
+void testdelcallback (cis_handler_node *test)
+{
+	printf("Delete Callback for %s\n",test->name);
+}
+
 int main ()
 {
 	connection *test;
+	cis_handler_node *handler_test;
 	
 	cis_drop_cores();
 	cis_init();
 	cis_load_selectengine();
 	
-	cis_load_config("test.conf");
+	handler_test = cis_config_add_handler(NULL,"test block",&testcallback,&testdelcallback);
+	cis_config_add_handler(handler_test,"moo",&testcallback,&testdelcallback);
 	
+	cis_load_config("test.conf");
+		
 	test = ipv4_tcp_listen("test","192.168.0.70",2335);
 	
 	if (test != NULL)
