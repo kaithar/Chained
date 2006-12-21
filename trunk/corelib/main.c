@@ -180,8 +180,8 @@ void cis_run (void)
 					if (temp->recvq->members > 0)
 					{
 						/* Must be dead but with a recvq still ... decrease the recvq
-						* don't worry about the size though, if it's dead then it can't get bigger
-						*/
+						 * don't worry about the size though, if it's dead then it can't get bigger
+						 */
 						
 						/* HACK! NEED A FIFO LIST! */
 						hack->list = temp->recvq;
