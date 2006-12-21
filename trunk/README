@@ -11,6 +11,7 @@ Core Library support:
 - Core dropping
 - Line breaker function
 - Safe Malloc
+- Events (Straight from Mythica)
 
 In no real order... Stuff to do:
 - Proper Fifo/Stack support (not linklist hacks)
@@ -18,7 +19,6 @@ In no real order... Stuff to do:
 - SSL
 - UDP abstractions
 - ipv6
-- Events
 - Timers
 - Modules
 - File streams/process support

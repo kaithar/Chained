@@ -48,6 +48,7 @@ typedef char bool;
 /**
  * @name Now lets have some prototypes
  */
+/*{*/
 
 #include <main.h>
 #include <conn_basics.h>
@@ -56,6 +57,7 @@ typedef char bool;
 #include <socketengines.h>
 #include <ipv4.h>
 #include <config_reading.h>
+#include <events.h>
 
 /*@}*/
 

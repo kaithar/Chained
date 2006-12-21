@@ -10,6 +10,9 @@
 #include <sys/resource.h> /* For rlimit stuff */
 #include <string.h>
 
+/* Internal prototypes */
+void cis_init_events();
+
 /**
  * @brief I am set by config param "debug"
  * @internal
@@ -70,6 +73,8 @@ void cis_init (void)
 	
 	srand(time(0));
 	memset(connections,0,sizeof(connections));
+	
+	cis_init_events();
 	
 	initd = 1;
 }
