@@ -672,6 +672,39 @@ static void cis_config_interpret_tree (cis_config_node *tree, cis_handler_node *
 /**************/
 
 /**
+ * Nuke that tree baby!
+ */
+ 
+static void cis_config_nuke_tree (cis_config_node *tree)
+{
+	linklist_iter *iter = NULL;
+	cis_config_node *child = NULL;
+	
+	if (tree == NULL)
+		return;
+	
+	if (tree->block)
+	{
+		iter = linklist_iter_create(tree->children);
+		while (child = linklist_iter_next(iter))
+		{
+			cis_config_nuke_tree(child);
+			linklist_iter_del(iter);
+		}
+		linklist_iter_free(iter);
+	}
+	
+	free(tree->name);
+	if (tree->text)
+		free(tree->text);
+	if (tree->children)
+		linklist_free(tree->children);
+	free(tree);
+}
+
+/**************/
+
+/**
  * Public function used to load and interpret a config file.
  */
 
@@ -704,6 +737,7 @@ int cis_load_config(unsigned char *filename)
 	
 	cis_config_interpret_tree(tree,cis_config_handler_root);
 	
+	cis_config_nuke_tree(tree);
 	fclose(configfile);	
 	free(cis_config_file);
 	exit(0);
