@@ -16,6 +16,7 @@ touch config.capab~
 
 LIBS="-lm -lc"
 MODULES=""
+LOCATION=`pwd`
 
 echo "When prompted, please enter your choice from the square brackets.";
 echo "Your previous answers are displayed in parenthese.";
