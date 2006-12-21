@@ -22,12 +22,13 @@ static void cis_process_block (FILE *configfile, cis_config_node *context, bool 
  * Encapsulate getc() to simplify filtering out comments
  */
 
+bool inquotes = false;
+char quotechar = '\0';
+int escaped = 0;
+	
 static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_eof)
-{
-	static bool inquotes = false;
-	static char quotechar = '\0';
+{	
 	char c,c2;
-	static int escaped = 0;
 	
 	while (1)
 	{
@@ -55,8 +56,8 @@ static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_
 			case ' ':
 			case '\t':
 				/**
-			 * This case allows for skipping any whitespace it comes across
-			 * This is especially usful for the begining of the line.
+				 * This case allows for skipping any whitespace it comes across
+				 * This is especially usful for the begining of the line.
 				 */
 				if (skip_whitespace == true)
 					break;
@@ -66,7 +67,7 @@ static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_
 			case '"':
 			case '\'':
 				/**
-			 * In addition to returning the quote, manage our internal quote state
+				 * In addition to returning the quote, manage our internal quote state
 				 */
 				if (escaped == 0)
 				{
@@ -125,6 +126,16 @@ static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_
 				return c;
 		}
 	}
+}
+
+static char config_unget_char (char c, FILE *configfile)
+{
+	if (inquotes == true)
+		inquotes = false;
+	else
+		inquotes = true;
+
+	ungetc(c, configfile);
 }
 
 /**
@@ -314,7 +325,7 @@ static void cis_process_block (FILE *configfile, cis_config_node *context, bool 
 					exit(1);
 					
 				case '{':
-					ungetc(*c,configfile);
+					config_unget_char(*c,configfile);
 				case ':':
 				case '=':
 					*(c++) = '\0';
@@ -355,7 +366,7 @@ static void cis_process_block (FILE *configfile, cis_config_node *context, bool 
 				
 				/* Don't bother ungetting if it's a block opener */
 				if (in != '{')
-					ungetc(in,configfile);
+					config_unget_char(in,configfile);
 				
 				break;
 			}
@@ -465,7 +476,7 @@ static void cis_process_block (FILE *configfile, cis_config_node *context, bool 
 					break;
 					
 				default:
-					ungetc(in,configfile);
+					config_unget_char(in,configfile);
 					in = 0;
 					break;
 			}
