@@ -754,3 +754,87 @@ int cis_load_config(unsigned char *filename)
 	
 	return 1;
 }
+
+#if 0
+
+/**
+ * Should it be needed...
+ */
+
+static int read_text_block (FILE *configfile, linklist_root *list)
+{
+	unsigned char buf[1000];
+	unsigned char *c = buf;
+	char *val;
+	char in;
+	bool readinline = 1;
+	bool skip_whitespace = 1;
+		
+	/**
+ 	 * Just read in \n delimited lines ... return on }
+ 	 * We're really easy to please.
+	 */
+	while (1)
+	{
+		memset(buf, 0, 1000);
+		c = buf;
+		readinline = 1;
+		
+		while (readinline)
+		{
+			in = config_get_char(configfile, skip_whitespace);
+			skip_whitespace = 0;
+			
+			switch (in)
+			{
+				case EOF:
+					printf("Unexpected EOF\n");
+					exit(1);
+					
+					/* Ignore multiple whitespace and leading whitespace */
+				case '\t':
+				case ' ':
+					if ((*c == ' ')||(c == buf))
+						break;
+					*(c++) = ' ';
+					break;
+					
+					/* \n and \r are end of line ... } is end of line and return */
+				case '\n':
+				case '\r':
+					skip_whitespace = 1;
+				case '}':
+					*(c++) = '\0';
+					if (*buf != '\0')
+						linklist_add(list,strdup(buf));
+					readinline = 0;
+					if (in == '}')
+						return;
+					break;
+					
+					/* Escaping ... \ before end of line ignores the \n, all other combinations print the literals */
+				case '\\':
+					in = config_get_char(configfile,false);
+					if (in == EOF)
+					{
+						printf("Unexpected EOF\n");
+						exit(1);
+					}
+					if ((in == '\n')||(in == '\r'))
+					{
+						while ((in == '\n')||(in == '\r'))
+							in = config_get_char(configfile,false);
+						ungetc(in,configfile);
+						break;
+					}
+					*(c++) = in;
+					break;
+					
+				/* Everything else: print it! */
+				default:
+					*(c++) = in;
+			}
+		}
+	}
+}
+#endif
