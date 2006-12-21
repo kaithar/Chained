@@ -40,7 +40,7 @@ int main ()
 	cis_load_selectengine();
 	
 	handler_test = cis_config_add_handler(NULL,"test block",&testcallback,&testdelcallback);
-	cis_config_add_handler(handler_test,"moo",&testcallback,&testdelcallback);
+	cis_config_add_handler(handler_test,"bleh",&testcallback,&testdelcallback);
 	
 	cis_load_config("test.conf");
 		

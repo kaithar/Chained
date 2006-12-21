@@ -651,22 +651,31 @@ static void cis_config_interpret_tree (cis_config_node *tree, cis_handler_node *
 	if ((tree == NULL)||(context == NULL))
 		return;
 	
-	iter = linklist_iter_create(tree->children);
-	while (child = linklist_iter_next(iter))
+	if (tree->block)
 	{
-		descent = 0;
-		handler = NULL;
-		handler = map_find(context->children,child->name);
-		if (handler)
+		iter = linklist_iter_create(tree->children);
+		while (child = linklist_iter_next(iter))
 		{
-			if (handler->handler)
-				descent = handler->handler(child);
-				
-			if ((child->block)&&(descent == 0))
-				cis_config_interpret_tree(child,handler);
+			descent = 0;
+			handler = NULL;
+			handler = map_find(context->children,child->name);
+			if (handler)
+			{
+				if (handler->handler)
+					descent = handler->handler(child);
+					
+				if (descent == 0)
+					cis_config_interpret_tree(child,handler);
+			}
 		}
+		linklist_iter_free(iter);
 	}
-	linklist_iter_free(iter);
+	else
+	{
+		handler = map_find(context->children,tree->name);
+		if ((handler)&&(handler->handler))
+			handler->handler(tree);
+	}
 		
 	return;
 }
