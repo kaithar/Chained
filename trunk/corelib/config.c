@@ -375,7 +375,9 @@ static void cis_process_block (FILE *configfile, cis_config_node *context, bool 
 			if ((key != c) && (*(c - 1) == '\0'))
 				break;
 			
-			if ((i == 7) && (strncasecmp(key,"include",8) == 0))
+			if ((i == 8) && (strncasecmp(key,"include ",8) == 0))
+				break;
+			if ((i == 5) && (strncasecmp(key,"load ",5) == 0))
 				break;
 		}
 		c -= 2;
@@ -404,10 +406,14 @@ static void cis_process_block (FILE *configfile, cis_config_node *context, bool 
 			}
 		}
 		/* Process include specially */
-		if (strncasecmp(key,"include",8) == 0)
+		if (strncasecmp(key,"include",7) == 0)
 		{
 			/* Read the string and include it */
 			cis_config_include(configfile,context);
+		}
+		else if (strncasecmp(key,"load",4) == 0)
+		{
+			/* Load a module ... */
 		}
 		else
 		{
