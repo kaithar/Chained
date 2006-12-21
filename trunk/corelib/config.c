@@ -9,8 +9,11 @@
 #include "chained.h"
 #include <string.h>
 
-int inc_line_num () {}
-int getLineNum() {}
+int cis_config_line = 0;
+unsigned char *cis_config_file = NULL;
+
+static int getLineNum() { return cis_config_line; }
+static unsigned char *getFileName() { return cis_config_file; }
 
 static int singlelinecomment(FILE *configfile);
 static int multilinecomment(FILE *configfile);
@@ -53,6 +56,7 @@ static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_
 				
 			case '\n':
 			case '\r':
+				cis_config_line++;
 			case ' ':
 			case '\t':
 				/**
@@ -131,9 +135,24 @@ static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_
 static char config_unget_char (char c, FILE *configfile)
 {
 	if (inquotes == true)
+	{
 		inquotes = false;
+		quotechar = ' ';
+	}
 	else
+	{
 		inquotes = true;
+		quotechar = c;
+	}
+	
+	if ((c == '\\')&&(escaped == 2))
+		escaped = 0;
+	
+	if (escaped == 1)
+		escaped = 2;
+	
+	if ((c == '\n')||(c == '\r'))
+		cis_config_line--;
 
 	ungetc(c, configfile);
 }
@@ -186,7 +205,7 @@ static int multilinecomment(FILE *configfile)
 		{
 			splat = 0;
 			if (c == '\n')
-				inc_line_num();
+				cis_config_line++;
 		}
 	}
 
@@ -201,6 +220,8 @@ static int multilinecomment(FILE *configfile)
 
 static void cis_config_include(FILE *configfile, cis_config_node *context)
 {
+	char *oldfile;
+	int oldline;
 	char quote = ' ';
 	char key[200];
 	char *c = key;
@@ -274,8 +295,19 @@ static void cis_config_include(FILE *configfile, cis_config_node *context)
 		exit(1);
 	}
 	
+	oldfile = cis_config_file;
+	oldline = cis_config_line;
+	
+	cis_config_file = strdup(key);
+	cis_config_line = 0;
+	
 	cis_process_block(newfile,context,true); // Last param controls handling of EOF
+	
 	fclose(newfile);
+	free(cis_config_file);
+	
+	cis_config_file = oldfile;
+	cis_config_line = oldline;
 }
 
 /**
@@ -663,6 +695,9 @@ int cis_load_config(unsigned char *filename)
 	tree->block = true;
 	tree->children = linklist_create();
 	
+	cis_config_file = strdup(filename);
+	cis_config_line = 0; 
+	
 	cis_process_block(configfile,tree,true); // Last param controls handling of EOF
 	
 	print_tree(tree);
@@ -670,5 +705,6 @@ int cis_load_config(unsigned char *filename)
 	cis_config_interpret_tree(tree,cis_config_handler_root);
 	
 	fclose(configfile);	
+	free(cis_config_file);
 	exit(0);
 }
