@@ -4,6 +4,7 @@
  * Chained in Sanity.
  * Core Library.
  * This file reads in a config.
+ * CHAINED: IGNORE
  */
 
 #include "chained.h"
