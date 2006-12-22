@@ -12,6 +12,7 @@ Core Library support:
 - Line breaker function
 - Safe Malloc
 - Events (Straight from Mythica)
+- Modules (Partial rewrite from Mythica)
 
 In no real order... Stuff to do:
 - Proper Fifo/Stack support (not linklist hacks)
@@ -20,7 +21,6 @@ In no real order... Stuff to do:
 - UDP abstractions
 - ipv6
 - Timers
-- Modules
 - File streams/process support
 - Base64 encoding
 - Globs

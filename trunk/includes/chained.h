@@ -58,6 +58,7 @@ typedef char bool;
 #include <ipv4.h>
 #include <config_reading.h>
 #include <events.h>
+#include <modules.h>
 
 /*@}*/
 

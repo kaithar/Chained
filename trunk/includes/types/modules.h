@@ -21,7 +21,6 @@ struct module
 		unsigned int perm:1;
 	} flags;
 
-	void *address;
 	void *handle;
 };
 
@@ -32,8 +31,8 @@ struct moduleheader
 	char *name;
 	bool(*modinit)(module *);
 	void (*deinit)();
-	char *vendor;
 	char *version;
+	char *vendor;
 };
 
 #define MAPI_MAGIC	0xDEADBEEF
@@ -42,7 +41,7 @@ struct moduleheader
 #define DECLARE_MODULE_V1(name, modinit, deinit, ver, ven) \
 	moduleheader _header = {				\
 		MAPI_MAGIC, MAPI_V1,				\
-		name, modinit, deinit, ven, ver		\
+		name, modinit, deinit, ver, ven		\
 }
 
 #endif

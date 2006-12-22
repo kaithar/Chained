@@ -36,6 +36,7 @@ int main ()
 	cis_handler_node *handler_test;
 	
 	cis_drop_cores();
+	cis_modules_set_path("./");
 	cis_init();
 	cis_load_selectengine();
 	

@@ -12,6 +12,7 @@
 
 /* Internal prototypes */
 void cis_init_events();
+void cis_init_modules();
 
 /**
  * @brief I am set by config param "debug"
@@ -75,6 +76,7 @@ void cis_init (void)
 	memset(connections,0,sizeof(connections));
 	
 	cis_init_events();
+	cis_init_modules();
 	
 	initd = 1;
 }

@@ -9,8 +9,8 @@
 #include "chained.h"
 #include <string.h>
 
-int cis_config_line = 0;
-unsigned char *cis_config_file = NULL;
+static int cis_config_line = 0;
+static unsigned char *cis_config_file = NULL;
 
 static int getLineNum() { return cis_config_line; }
 static unsigned char *getFileName() { return cis_config_file; }
@@ -311,6 +311,86 @@ static void cis_config_include(FILE *configfile, cis_config_node *context)
 }
 
 /**
+ * Load a module
+ */
+
+static void cis_config_load(FILE *configfile, cis_config_node *context)
+{
+	char quote = ' ';
+	char key[200];
+	char *c = key;
+	int i = 0;
+	bool skip_whitespace = 0;
+	
+	/* Read file name */
+	memset(key,0,200);
+	while (1)
+	{
+		*c = config_get_char(configfile, skip_whitespace,1);
+		skip_whitespace = 0;
+		switch (*c)
+		{
+			case '\'':
+			case '"':
+				/* So it's a quoted string ... note the quote and move on... */
+				if (c == key) /* first char */
+					quote = *c;
+				else if (*c == quote) /* matching */
+				{
+					if (*(c - 1) == '\\') /* escaped match */
+						*(c - 1) = quote;
+					else /* end of string */
+						*(c++) = '\0';
+				}
+				else /* must be a literal, just keep going */
+					c++;
+				break;
+							
+				/* Ignore multiple whitespace and leading whitespace */
+			case '\n':
+			case '\r':
+				skip_whitespace = 1;
+			case '\t':
+			case ' ':
+				if (*(c - 1) == ' ')
+					break;
+				*(c++) = ' ';
+				break;
+							
+			case '}':
+				printf("Unexpected }\n");
+				exit(1);
+							
+			case ';':
+				if (quote == ' ')
+					*(c++) = '\0';
+				else 
+					*(c++) = ';';
+				break;
+							
+				/* Everything else: print it! */
+			default:
+				c++;
+		}
+		if (++i == 200)
+		{
+			printf("Out of value buffer\n");
+			exit(1);
+		}
+		if ((key != c) && (*(c - 1) == '\0'))
+			break;
+	}
+	
+	if (cis_module_load(key) == NULL)
+	{
+		printf("Loader error: attempted to load %s but apparently failed.\nTerminating.\n", key);
+		exit(1);
+	}
+
+	printf("Loaded module: %s\n", key);
+}
+
+/**
  * Convert a block in to nodes on the tree
  */
 
@@ -414,6 +494,7 @@ static void cis_process_block (FILE *configfile, cis_config_node *context, bool 
 		else if (strncasecmp(key,"load",4) == 0)
 		{
 			/* Load a module ... */
+			cis_config_load(configfile,context);
 		}
 		else
 		{
