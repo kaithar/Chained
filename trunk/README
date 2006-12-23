@@ -16,7 +16,7 @@ Core Library support:
 
 In no real order... Stuff to do:
 - Proper Fifo/Stack support (not linklist hacks)
-- Select engine
+- Epoll engine
 - SSL
 - UDP abstractions
 - ipv6
