@@ -104,10 +104,12 @@ echo "Makefile";
 echo "all:" > Makefile
 echo "	(cd corelib; make all)" >> Makefile
 echo "	(cd echo; make all)" >> Makefile
+echo "	(cd ircbot; make all)" >> Makefile
 echo "" >> Makefile
 echo "clean:" >> Makefile
 echo "	(cd corelib; make clean)" >> Makefile
 echo "	(cd echo; make clean)" >> Makefile
+echo "	(cd ircbot; make clean)" >> Makefile
 echo "" >> Makefile
 
 
