@@ -18,7 +18,9 @@ struct connection
 	/** This should be used to name the connection. */
 	char *name;
 	int fd;
-	
+	/** This represents something meaningful to the main app */
+	void *data;
+
 	/** This struct contains all kinds of usful bit flags.*/
 	struct
 	{
