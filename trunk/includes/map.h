@@ -82,6 +82,7 @@ extern const int MAP_ALLOW_AZ09_CI[257];
 extern const int MAP_ALLOW_AZ09_SPACE[257];
 extern const int MAP_ALLOW_AZ09_SPACE_CI[257];
 
+extern const int MAP_ALLOW_TRIGGER_CHARS[257];
 extern const int ALLOWED_NICK_CHARS[257];
 extern const int ALLOWED_CHAN_CHARS[257];
 
