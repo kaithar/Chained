@@ -1,0 +1,156 @@
+#!/usr/bin/perl
+
+# Chained's new configure script ... thanks to InspIRCd for saving me a lot of manual reading :P
+
+if ( -f "./config.lastrun")
+{
+  eval { do "./config.lastrun"; }
+}
+
+open(LR, ">", "config.lastrun~") or die("lr open failed");
+
+$libs = "-lm -lc";
+$modules = "";
+$location = `pwd`;
+
+print "When prompted, please enter your choice from the square brackets.
+Your previous answers are displayed in parenthese.
+Hitting enter will cause it to use your previous answer.
+
+
+Detecting OS requirements...
+============================
+
+Looking for dl... ";
+if (-f "/usr/lib/libdl.a")
+{
+  print "found, using -ldl\n";
+  $DL = 1;
+  $libs .= " -ldl"
+}
+else
+{
+  print "not found.\n";
+  $DL = 0;
+}
+
+print "
+Attempting to detect OS capabilities
+====================================
+
+Where would you like \"make install\" to install to? ($last_makeinstall) ";
+
+chomp($makeinstall = <STDIN>);
+if ($makeinstall eq "") { $makeinstall = $last_makeinstall; }
+
+$makeinstall =~ s/\/*$//;
+
+print LR "\$last_makeinstall='$makeinstall'";
+
+#############################
+
+close LR;
+rename "config.lastrun~", "config.lastrun";
+system "mkdir -p $makeinstall";
+
+#######################################################################
+#######################################################################
+#######################################################################
+
+print "\nCreating Makefiles...\n";
+
+#####################################
+
+print "> includes/Make_config\n";
+
+chdir "includes/";
+
+open(MC, ">Make_config");
+
+print MC "CC = gcc
+CFLAGS = -export-dynamic -g -fPIC -pipe -I\$(INCLUDE_DIR)
+LIBS = $libs
+INCLUDES = ";
+
+open (GREP, 'grep -L "CHAINED: IGNORE" *.h|');
+while (<GREP>)
+{
+  $f = $_;
+  chomp($f);
+  print MC " \\\n \$(INCLUDE_DIR)$f";
+}
+print MC "\n";
+close GREP;
+close MC;
+
+chdir "..";
+
+####################################
+
+print "> corelib/Makefile\n";
+chdir corelib;
+
+print "> > Generating object list\n";
+
+open(MF, ">Makefile");
+
+$OBJS = "";
+open(GREP, 'grep -LE "CHAINED: (IGNORE|NORULE)" *.c |');
+while (<GREP>)
+{
+  $f = $_;
+  chomp($f);
+  $f =~ s/\.c$/.o/;
+  $OBJS .= " $f";
+}
+close GREP;
+
+print MF "INCLUDE_DIR = ../includes/
+
+include \$(INCLUDE_DIR)Make_config
+OBJS = $OBJS
+
+all:	\$(OBJS)
+	\$(CC) \$(CFLAGS) \$(LIBS) -shared -o libchained.so \$(OBJS)
+
+# ----
+
+\$(OBJS):	\$(INCLUDES)
+
+# ----
+
+clean:
+	rm -f *.o *.so
+
+# ----
+
+install:
+	mkdir -p $makeinstall/libs
+	cp *.so $makeinstall/libs
+";
+
+close MF;
+
+chdir ..
+#####################################
+
+print "Makefile";
+
+open (MF, ">Makefile");
+print MF "all:
+	(cd corelib; make all)
+	(cd echo; make all)
+	(cd ircbot; make all)
+
+clean:
+	(cd corelib; make clean)
+	(cd echo; make clean)
+	(cd ircbot; make clean)
+";
+close MF;
+
+print "
+------------------------------
+       Config complete.
+------------------------------
+";
