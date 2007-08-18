@@ -31,17 +31,24 @@ struct moduleheader
 	char *name;
 	bool(*modinit)(module *);
 	void (*deinit)();
+  bool (*modconfig)(module *, cis_config_node *);
 	char *version;
 	char *vendor;
 };
 
-#define MAPI_MAGIC	0xDEADBEEF
-#define MAPI_V1		1
+#define MAPI_MAGIC	0xBEEFCAFE
+#define MAPI_V		2
 
 #define DECLARE_MODULE_V1(name, modinit, deinit, ver, ven) \
 	moduleheader _header = {				\
-		MAPI_MAGIC, MAPI_V1,				\
-		name, modinit, deinit, ver, ven		\
+		MAPI_MAGIC, MAPI_V,				\
+		name, modinit, deinit, NULL, ver, ven		\
+}
+
+#define DECLARE_MODULE_V2(name, modinit, deinit, modconfig, ver, ven) \
+  moduleheader _header = {        \
+    MAPI_MAGIC, MAPI_V,        \
+    name, modinit, deinit, modconfig, ver, ven   \
 }
 
 #endif

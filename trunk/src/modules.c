@@ -12,9 +12,48 @@ static linklist_root *modules = NULL;
 static unsigned char *mod_path = NULL;
 static int mod_path_length = 0;
 
+int config_handler_module (cis_config_node *node)
+{
+  linklist_iter *iter;
+  cis_config_node *temp;
+  module *m;
+  
+  if (node == NULL)
+    abort();
+  
+  if (node->block != true)
+  {
+    if (node->text != NULL)
+      cis_module_load(node->text);
+    else
+    {
+      printf("module didn't seem to contain anything...\n");
+      exit(0);
+    }
+  }
+  else
+  {
+    iter = linklist_iter_create(node->children);
+    
+    while ((temp = linklist_iter_next(iter)) != NULL)
+    {
+      if ((temp->text != NULL) && (strcasecmp(temp->name, "file") == 0) && (temp->block != true))
+      {
+        m = cis_module_load(temp->text);
+        if ((m != NULL) && (m->header != NULL) && (m->header->modconfig != NULL))
+        {
+          m->header->modconfig(m, node);
+        }
+        return 0;
+      }
+    }
+  }
+}
+
 void cis_init_modules()
 {
 	modules = linklist_create();
+  cis_config_add_handler(NULL,"module",&config_handler_module,NULL);
 }
 
 void cis_modules_set_path (unsigned char *path)
