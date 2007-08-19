@@ -68,22 +68,23 @@ void cis_modules_set_path (unsigned char *path)
 		c++;
 	c--;
 	
-	if (*c != '/')
-		mod_path_length++;
+	if (*c == '/')
+		mod_path_length--;
 	
 	mod_path = smalloc(mod_path_length+1);
 	snprintf(mod_path,mod_path_length+1,"%s",path);
 	
 	mod_path[mod_path_length] = '/';
 	mod_path[mod_path_length+1] = '\0';
+  mod_path_length++;
 }
 
 module *cis_module_load(char *modfile)
 {
 	module *m = smalloc(sizeof(module));
 	moduleheader *h;
-	int plen = mod_path_length + strlen(modfile);
-	
+	int plen = mod_path_length + strlen(modfile) + 1;
+  
 	if (mod_path == NULL)
 		abort();
 
@@ -93,7 +94,7 @@ module *cis_module_load(char *modfile)
 
 	if (!m->handle)
 	{
-		printf("Unable to open module %s: %s\n", modfile, dlerror());
+		printf("Unable to open module %s: %s\n", m->path, dlerror());
 		free(m->path);
 		free(m);
 		return NULL;
