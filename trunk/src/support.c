@@ -18,3 +18,24 @@ void  *smalloc(int size)
 	memset(p,0,size);
 	return (p);
 }
+
+
+/******************************/
+
+/** Do blocking exec ...*/
+
+int cis_do_blocking_exec (unsigned char *file, unsigned char *buffer, unsigned int n) 
+{
+  unsigned int pnbytes = 0;
+  FILE *f;
+  if ((f = popen(file, "r")) == NULL)
+    return -1;
+  if ((pnbytes = fread(buffer, sizeof(char), n-1, f)) == 0)
+  {
+    pclose(f);
+    return -2;
+  }
+  buffer[pnbytes] = '\0';
+  pclose(f);
+  return pnbytes;
+}
