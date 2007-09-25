@@ -21,8 +21,8 @@ char conn_read_in_temp[10000];
  * This function relys on the connection allocating enough buffer space for the largest line it could expect to receive.
  * If the connection tries to send too bigger line, it gets hard wrapped.
  * It's rather important to note that this function prefers efficent memory use over efficent cpu usage.
- * This means that if we expect a max line of 5k, we use a 5k temp buffer and then malloc and memcpy.
- * This is in contrast to doing a malloc of 5k every time.
+ * This means that if we expect a max line of 10k, we use a 10k temp buffer and then malloc and memcpy.
+ * This is in contrast to doing a malloc of 10k every time.
  *
  * We're allocating a block for each line...
  * I'm far too lazy to try and keep track of multiple messages in the same block of memory.
