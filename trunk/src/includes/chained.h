@@ -20,7 +20,8 @@ typedef char bool;
  */
 
 #include <stdio.h>
-/*#include <stdlib.h>*/
+#include <stdlib.h>
+#include <string.h>
 #include <errno.h> /* helpful ;) */
 
 #include "config.h"
