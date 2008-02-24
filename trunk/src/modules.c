@@ -74,8 +74,8 @@ void cis_modules_set_path (unsigned char *path)
 	mod_path = smalloc(mod_path_length+1);
 	snprintf(mod_path,mod_path_length+1,"%s",path);
 	
-	mod_path[mod_path_length] = '/';
-	mod_path[mod_path_length+1] = '\0';
+	mod_path[mod_path_length-1] = '/';
+	mod_path[mod_path_length] = '\0';
   mod_path_length++;
 }
 
