@@ -31,6 +31,7 @@ typedef char bool;
  */
 /*@{*/
 
+#include <fifo.h>
 #include <linklist.h>
 #include <map.h>
 
