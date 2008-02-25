@@ -46,8 +46,8 @@ struct connection
 	 * @name RecvQ
 	 */
 	/*@{*/
-	linklist_root *recvq;			/**< This is a linklist of messages received from this connection but not processed yet. */
-	int recvq_size;						/**< This is how much data we're storing on this recvq linklist */
+	fifo_root *recvq;					/**< This is a fifo of messages received from this connection but not processed yet. */
+	int recvq_size;						/**< This is how much data we're storing on this recvq fifo */
 	unsigned char *recvq_buf;	/**< Buffer for storing part read data */
 	int recvq_buf_used;				/**< Amount of space used in the buffer. */
 	int recvq_buf_free;				/**< Amount of space left in the buffer. */
@@ -57,8 +57,8 @@ struct connection
 	 * @name SendQ
 	 */
 	/*@{*/
-	linklist_root *sendq;			/**< This is a linklist of messages about to be sent from this connection. */
-	int sendq_size;						/**< This is how much data we're storing on this sendq linklist */
+	fifo_root *sendq;					/**< This is a fifo of messages about to be sent from this connection. */
+	int sendq_size;						/**< This is how much data we're storing on this sendq fifo */
 	unsigned char *sendq_buf;	/**< Buffer for storing part sent data */
 	int sendq_buf_used;				/**< Amount of space used in the buffer. */
 	int sendq_buf_free;				/**< Amount of space left in the buffer. */

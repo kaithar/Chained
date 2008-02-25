@@ -103,7 +103,6 @@ void cis_run (void)
 	connection *write_events[__MAXFDS__];
 	
 	fifo_root *global_recvq;
-	linklist_iter *hack = NULL;
 	
 	connection *temp = NULL;
 	char *line;
@@ -149,9 +148,7 @@ void cis_run (void)
 				if ((temp->state.dead == 0)&&(temp->recvq->members > 0))
 				{
 					/* Dead connections don't get processed ... closed ones -do- (since they may have closed after sending this...) */
-					/* HACK! NEED A FIFO LIST! */
-					hack = linklist_iter_create(temp->recvq);
-					line = linklist_iter_next( hack );
+					line = fifo_pop( temp->recvq );
 					
 					if (temp->callback_read)
 						temp->callback_read(temp,line);
@@ -159,8 +156,6 @@ void cis_run (void)
 					temp->recvq_size -= strlen(line);
 					if (temp->recvq_size < 0)
 						fprintf(stderr,"Um, negative recvq? Something is seriously wrong here.\n");
-					
-					linklist_iter_del( hack );
 					
 					/* Only remove from the global recvq if we've finished processing it's messages */
 					if (temp->recvq->members == 0)
@@ -184,11 +179,7 @@ void cis_run (void)
 						/* Must be dead but with a recvq still ... decrease the recvq
 						 * don't worry about the size though, if it's dead then it can't get bigger
 						 */
-						
-						/* HACK! NEED A FIFO LIST! */
-						hack = linklist_iter_create(temp->recvq);
-						line = linklist_iter_next( hack );
-						linklist_iter_del( hack );
+						line = fifo_pop(temp->recvq);
 						free(line);
 					}
 					/* Since we didn't do much with this one, we'll try another pass... */

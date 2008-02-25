@@ -79,7 +79,7 @@ void conn_read_to_recvq (connection *cn)
 					cn->recvq_buf_free = readin;
 					cn->recvq_buf_used = 0;
 					
-					linklist_add(cn->recvq,line);
+					fifo_add(cn->recvq,line);
 					cn->recvq_size += strlen(line);
 				}
 				else
@@ -88,7 +88,7 @@ void conn_read_to_recvq (connection *cn)
 					{
 						cn->recvq_size += ((next - line) - 1);
 						line = strdup(line);
-						linklist_add(cn->recvq,line);
+						fifo_add(cn->recvq,line);
 					}
 				}
 				line = next;
@@ -105,7 +105,6 @@ void conn_read_to_recvq (connection *cn)
 bool conn_send_from_sendq (connection *cn)
 {
 	char *line;
-	linklist_iter *pos;
 	/**
 	 * If there is no sendq, return true so it'll remove it from the global_sendq
 	 */
@@ -116,8 +115,6 @@ bool conn_send_from_sendq (connection *cn)
 		return 1;
 	}
 	
-	pos = linklist_iter_create( cn->sendq );
-	
 	/**
 	 * If the connection is closed, attempt to empty the sendq.
 	 * Dead connections can recv messages though...
@@ -125,21 +122,20 @@ bool conn_send_from_sendq (connection *cn)
 	
 	if (cn->state.closed == 1)
 	{
-		while ((line = linklist_iter_next( pos )) != NULL)
+		while ((line = fifo_pop( cn->sendq )) != NULL)
 		{
-			linklist_iter_del(pos);
 			free(line);
 		}
 		cn->sendq_size = 0;
 		socketengine->mod(cn,0,-1);
 		return 1;
-	}	
+	}
 	
-	while ((line = linklist_iter_next( pos )) != NULL)
+	while ((line = fifo_peek( cn->sendq )) != NULL)
 	{
 		if (cn->write(cn,line) == 0)
 			return 0;
-		linklist_iter_del(pos);
+		fifo_pop( cn->sendq );
 		cn->sendq_size -= strlen(line);
 		if (cn->sendq_size < 0)
 			fprintf(stderr,"Um, negative sendq size?\n");
@@ -171,7 +167,7 @@ int cprintf(connection *stream, char *fmt, ...)
 	{
 		/* Well that didn't work ... better sendq it... */
 		temp = strdup(sharbuf);
-		linklist_add(stream->sendq,temp);
+		fifo_add(stream->sendq,temp);
 		stream->sendq_size += strlen(temp);
 		if (stream->sendq->members == 1)
 		{

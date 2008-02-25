@@ -86,8 +86,8 @@ connection *ipv4_tcp_listen(char *name, char *target_ip, int target_port)
 	conn->read = &ipv4_tcp_accept;
 	conn->close = &ipv4_tcp_close;
 	
-	conn->recvq = linklist_create();
-	conn->sendq = linklist_create();
+	conn->recvq = fifo_create(); /** FIXME: Does a listening socket actually need a recvq/sendq? Why? */
+	conn->sendq = fifo_create();
 
 	printf("Bind complete, fd: %d!\n", conn->fd);
 
@@ -120,11 +120,11 @@ static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc)
 	newStream->write = &ipv4_tcp_write;
 	newStream->close = &ipv4_tcp_close;
   
-	newStream->recvq = linklist_create();
+	newStream->recvq = fifo_create();
 	newStream->recvq_buf = smalloc(5000);
 	newStream->recvq_buf_free = 5000;
   
-	newStream->sendq = linklist_create();
+	newStream->sendq = fifo_create();
 	newStream->sendq_buf = smalloc(5000);
 	newStream->sendq_buf_free = 5000;
 	
@@ -194,11 +194,11 @@ connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_p
 	conn->write = &ipv4_tcp_write;
 	conn->close = &ipv4_tcp_close;
   
-	conn->recvq = linklist_create();
+	conn->recvq = fifo_create();
 	conn->recvq_buf = smalloc(5000);
 	conn->recvq_buf_free = 5000;
   
-	conn->sendq = linklist_create();
+	conn->sendq = fifo_create();
 	conn->sendq_buf = smalloc(5000);
 	conn->sendq_buf_free = 5000;
 	
