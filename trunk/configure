@@ -128,8 +128,9 @@ clean:
 install:
 	mkdir -p $makeinstall/libs
 	cp *.so $makeinstall/libs
-	mkdir -p $makeinstall/includes
-	cp -r includes/*.h includes/types $makeinstall/includes
+	mkdir -p $makeinstall/includes/types
+	cp includes/*.h $makeinstall/includes
+	cp includes/types/*.h $makeinstall/includes/types
 ";
 
 close MF;
