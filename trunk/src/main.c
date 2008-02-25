@@ -102,9 +102,7 @@ void cis_run (void)
 	connection *read_events[__MAXFDS__];
 	connection *write_events[__MAXFDS__];
 	
-	linklist_root *global_recvq;
-	linklist_iter *global_recvq_start;
-	
+	fifo_root *global_recvq;
 	linklist_iter *hack = NULL;
 	
 	connection *temp = NULL;
@@ -112,10 +110,8 @@ void cis_run (void)
 	
 	int patience = 250;
 	
-	global_recvq = linklist_create();
-	global_recvq_start = linklist_iter_create( global_recvq );
-	hack = linklist_iter_create( global_recvq );
-	
+	global_recvq = fifo_create();
+
 	/* main loop */
 	for(;;) {
 		
@@ -128,7 +124,7 @@ void cis_run (void)
 			{
 				r++;
 				conn_read_to_recvq(read_events[i]);
-				linklist_add(global_recvq, read_events[i]);
+				fifo_add(global_recvq, read_events[i]);
 				/* Don't wait for data! too much to do! */
 				patience = 0;
 			}
@@ -143,7 +139,7 @@ void cis_run (void)
 		{
 			for (;;)
 			{
-				temp = linklist_iter_next(global_recvq_start);
+				temp = fifo_peek(global_recvq);
 				if (temp == NULL)
 				{
 					/* We seem to be out of connections to process... Have more patience waiting for new data ...*/
@@ -154,8 +150,7 @@ void cis_run (void)
 				{
 					/* Dead connections don't get processed ... closed ones -do- (since they may have closed after sending this...) */
 					/* HACK! NEED A FIFO LIST! */
-					hack->list = temp->recvq;
-					hack->current = NULL;
+					hack = linklist_iter_create(temp->recvq);
 					line = linklist_iter_next( hack );
 					
 					if (temp->callback_read)
@@ -169,7 +164,7 @@ void cis_run (void)
 					
 					/* Only remove from the global recvq if we've finished processing it's messages */
 					if (temp->recvq->members == 0)
-						linklist_iter_del( global_recvq_start );
+						fifo_pop(global_recvq);
 					
 					free(line);
 					
@@ -182,7 +177,7 @@ void cis_run (void)
 				else
 				{
 					/* So this is either dead, or has no recvq ... both could happen, but ignore it either way */
-					linklist_iter_del( global_recvq_start );
+					fifo_pop(global_recvq);
 					
 					if (temp->recvq->members > 0)
 					{
@@ -191,8 +186,7 @@ void cis_run (void)
 						 */
 						
 						/* HACK! NEED A FIFO LIST! */
-						hack->list = temp->recvq;
-						hack->current = NULL;
+						hack = linklist_iter_create(temp->recvq);
 						line = linklist_iter_next( hack );
 						linklist_iter_del( hack );
 						free(line);
