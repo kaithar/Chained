@@ -158,6 +158,8 @@ void *fifo_peek(fifo_root *fifo)
 {
 	if (fifo == NULL)
 		abort();
+	if (fifo->first == NULL)
+		return NULL;
 	return fifo->first->data;
 }
 
