@@ -264,9 +264,9 @@ void linklist_iter_del(linklist_iter *iter)
 
 
 /************************************************
- * Sorted Lists					*
- * Just like the above functions,		*
- * but with a little extra!			*
+ * Sorted Lists                                 *
+ * Just like the above functions,               *
+ * but with a little extra!                     *
  ************************************************/
 
 /*
