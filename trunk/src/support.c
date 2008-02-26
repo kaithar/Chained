@@ -39,3 +39,21 @@ int cis_do_blocking_exec (unsigned char *file, unsigned char *buffer, unsigned i
   pclose(f);
   return pnbytes;
 }
+
+/******************************/
+
+void discard_sendq (connection *conn)
+{
+	char *temp = NULL;
+	while (temp = fifo_pop(conn->sendq))
+		free(temp);
+	conn->sendq_size = 0;
+}
+
+void discard_recvq (connection *conn)
+{
+	char *temp = NULL;
+	while (fifo_pop(conn->recvq))
+		free(temp);
+	conn->recvq_size = 0;
+}
