@@ -173,6 +173,9 @@ void *fifo_pop(fifo_root *fifo)
 
 	front = fifo->first;
 
+	if (front == NULL)
+		return NULL;
+
 	/* If the fifo actually has content, we pop the first one */
 	if (fifo->first != NULL)
 		fifo->first = fifo->first->next;
