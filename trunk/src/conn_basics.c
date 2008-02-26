@@ -52,7 +52,7 @@ void conn_read_to_recvq (connection *cn)
 
 		memset(&conn_read_in_temp,0,readin);
 		line = conn_read_in_temp;
-		if ((nbytes = cn->read(cn, readin, conn_read_in_temp)) <= 0) 
+		if (((nbytes = cn->read(cn, readin, conn_read_in_temp)) <= 0) || (cn->state.local_dead == 1))
 		{
 			/* We expect cn->read to handle it's own errors and return 0 when we need to stop reading. */
 			break;
@@ -106,11 +106,14 @@ bool conn_send_from_sendq (connection *cn)
 {
 	char *line;
 	/**
-	 * If there is no sendq, return true so it'll remove it from the global_sendq
+	 * If there is no sendq, return true in case differenciation is needed.
 	 */
 	
 	if (cn->sendq->members == 0)
 	{
+		/** Better check if it is dead...*/
+		if (cn->state.local_dead == 1)
+			cis_reap_connection(cn);
 		socketengine->mod(cn,0,-1);
 		return 1;
 	}
@@ -120,13 +123,9 @@ bool conn_send_from_sendq (connection *cn)
 	 * Dead connections can recv messages though...
 	 */
 	
-	if (cn->state.closed == 1)
+	if (cn->state.remote_dead == 1)
 	{
-		while ((line = fifo_pop( cn->sendq )) != NULL)
-		{
-			free(line);
-		}
-		cn->sendq_size = 0;
+		discard_sendq(cn);
 		socketengine->mod(cn,0,-1);
 		return 1;
 	}
@@ -141,6 +140,10 @@ bool conn_send_from_sendq (connection *cn)
 			fprintf(stderr,"Um, negative sendq size?\n");
 		free(line);
 	}
+	
+	/** If we have reached this point, the queue is empty...*/
+	if (cn->state.local_dead == 1)
+		cis_reap_connection(cn);
 	socketengine->mod(cn,0,-1);
 	return 1;
 }

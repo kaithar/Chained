@@ -127,6 +127,8 @@ static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc)
 	newStream->sendq = fifo_create();
 	newStream->sendq_buf = smalloc(5000);
 	newStream->sendq_buf_free = 5000;
+
+	newStream->state.can_shutdown = true;
 	
 	/* Make it nonblock and add it to the sockengine */
 	flags = fcntl(newStream->fd, F_GETFL, 0);
@@ -201,6 +203,8 @@ connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_p
 	conn->sendq = fifo_create();
 	conn->sendq_buf = smalloc(5000);
 	conn->sendq_buf_free = 5000;
+
+	conn->state.can_shutdown = 1;
 	
 	fprintf(stderr,"Connect complete, fd: %d!\n",conn->fd);
 	return conn;
@@ -210,7 +214,7 @@ int ipv4_tcp_read(connection *cn, int how_much, char *buffer)
 {
 	int nbytes = 0;
 	
-	if (cn->state.closed)
+	if (cn->state.remote_dead)
 	{
 		*buffer = '\0';
 		return 0;
@@ -220,7 +224,11 @@ int ipv4_tcp_read(connection *cn, int how_much, char *buffer)
 	{
 		if (nbytes == 0)
 		{
-			cn->close(cn);
+			/* Connection closed remotely, so we can't send anymore */
+			discard_sendq(cn);
+			cn->state.remote_dead = 1;
+			if (cn->recvq->members == 0)
+				cis_reap_connection(cn);
 			return 0;
 		}
 		else if (errno == EAGAIN)
@@ -228,9 +236,15 @@ int ipv4_tcp_read(connection *cn, int how_much, char *buffer)
 			return 0;
 		}
 		perror("recv");
-		cn->close(cn);
-		return 0;
+		cn->syscall_error = nbytes;
+		/* Connection closed remotely, so we can't send anymore */
+		discard_sendq(cn);
+		cn->state.remote_dead = 1;
+		if (cn->recvq->members == 0)
+			cis_reap_connection(cn);
+		return -1;
 	}
+
 	buffer[nbytes] = '\0';
 	return nbytes;
 }
@@ -239,7 +253,7 @@ int ipv4_tcp_write(connection *stream, char *str)
 {
 	int nbytes = 0;
 	
-	if (stream->state.closed)
+	if (stream->state.remote_dead)
 		return strlen(str);
 	
 	if ((nbytes = send(stream->fd, str, strlen(str), 0)) <= 0)
@@ -249,8 +263,13 @@ int ipv4_tcp_write(connection *stream, char *str)
 			return 0;
 		}
 		perror("send");
-		stream->close(stream);
-		return 0;
+		stream->syscall_error = nbytes;
+		/* Connection closed remotely, so we can't send anymore */
+		discard_sendq(stream);
+		stream->state.remote_dead = 1;
+		if (stream->recvq->members == 0)
+			cis_reap_connection(stream);
+		return -1;
 	}
 	
 	return nbytes;
@@ -258,16 +277,31 @@ int ipv4_tcp_write(connection *stream, char *str)
 
 int ipv4_tcp_close(connection *stream)
 {
-	if (stream->state.closed == 0)
+	/** This has either been called by the reaper to clean up, or the client to close down... which? */
+	if ((stream->state.remote_dead == 0) && (stream->state.local_dead == 0))
 	{
+		/** If the remote and local aren't dead, we assume a local close is desired */
+		discard_recvq(stream);
+		stream->state.local_dead = 1;
 		if (stream->callback_close)
 			stream->callback_close(stream);
-		if (stream->enc_close)
-			stream->enc_close(stream);
-		stream->state.closed = 1;
-		socketengine->del(stream);
-		return close(stream->fd);
+		if (stream->state.can_shutdown == 1)
+			shutdown(stream->fd,SHUT_RD);
+		if (stream->sendq->members == 0)
+			cis_reap_connection(stream);
+		socketengine->mod(stream,0,-1);
 	}
-
+	else
+	{
+		/** If one of them -is- dead, we assume this is the reaper cleaning up, and attempt to shutdown in a clean fashion. */
+		/* If state.local_dead is 0, we assume no callback has been fired */
+		if ((stream->state.local_dead == 0) && (stream->callback_close))
+			stream->callback_close(stream);
+		/* If state.remote_dead is 0, we assume the connection is still alive to receive a shutdown */
+		if ((stream->state.remote_dead == 0) && (stream->enc_close))
+			stream->enc_close(stream);		stream->state.remote_dead = 1;
+		socketengine->del(stream);
+		close(stream->fd);
+	}
 	return 0;
 }

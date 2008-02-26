@@ -24,13 +24,33 @@ struct connection
   /** This is an extra little flag, just in case you want to use multiple types of socket. */
   int conn_mark;
 
-	/** This struct contains all kinds of usful bit flags.*/
+	/** This contains the error that killed the connection */
+	int syscall_error;
+
+	/**
+	 * This struct contains all kinds of useful bit flags
+	 * Note that all of these flags should be considered read only unless you're 1000% sure you know what you're doing.
+	 */
 	struct
 	{
-		/** This signifies that the connection has died and will shortly be reaped. */
-		unsigned int dead:1;
-		/** This signifies that the connection has been closed */
-		unsigned int closed:1;
+		/**
+		  * This signifies that the connection has been added to the reaper.
+		  */
+		unsigned int reaping:1;
+		/**
+		  * This signifies that the remote connection is dead, further data will not be sent out.
+		  * Recvq will continue to be processed, connection will be flagged dead when recvq is empty.
+		  */
+		unsigned int remote_dead:1;
+		/**
+		  * This signifies the local connection is closed, further data will not be handled.
+			* Sendq will continue to be processed, connection will be flagged dead when sendq is empty.
+			*/
+		unsigned int local_dead:1;
+
+		/** This is used to indicate a connection may be allowed to use shutdown */
+		unsigned int can_shutdown:1;
+
 		/** Socket engine listening for readable. */
 		unsigned int listen_read:1;
 		/** Socket engine listening for writable. */

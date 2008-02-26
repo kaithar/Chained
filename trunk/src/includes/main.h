@@ -8,6 +8,8 @@
 extern int DEBUG;
 extern socket_engine *socketengine;
 
+extern void cis_reap_connection(connection *cn);
+
 extern void cis_drop_cores (void);
 extern void cis_init (void);
 extern void cis_run (void);

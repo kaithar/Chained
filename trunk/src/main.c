@@ -31,8 +31,31 @@ socket_engine *socketengine = NULL;
 /**
  * @brief Connection tracking...
  * @internal
+ * @todo FIXME: Is this still needed or can it be removed?
  */
 connection *connections[__MAXFDS__];
+
+/**
+ * @brief Reaper...
+ * This is where we store sockets we're waiting to reap.
+ * Using a fifo here would have been nice, but we really do need to be able to iterate.
+ * @internal
+ */
+
+static linklist_root *reaper_list = NULL;
+
+/**
+ * @brief I add a connection to the kill list
+ * If you force the code to reap a connection twice, it will most likely do a segfault.
+ */
+
+void cis_reap_connection(connection *cn)
+{
+	if (cn->state.reaping == 1)
+		return;
+	linklist_add(reaper_list,cn);
+	cn->state.reaping = 1;
+}
 
 /**
  * @brief I try to make sure we're dropping cores...
@@ -78,6 +101,8 @@ void cis_init (void)
 	cis_init_events();
 	cis_init_modules();
 	
+	reaper_list = linklist_create();
+	
 	initd = 1;
 }
 
@@ -92,7 +117,6 @@ void cis_init (void)
  * @todo
  * -# Although we can listen for write on a socket, the socket loop doesn't do anything with it.
  * -# Infact, the whole socket loop should probably be slimed down!  This function needs to be simple!
- * -# Write a fifo list so the hack used for recvq/sendq can be nuked!
  */
 
 void cis_run (void)
@@ -102,7 +126,8 @@ void cis_run (void)
 	connection *read_events[__MAXFDS__];
 	connection *write_events[__MAXFDS__];
 	
-	fifo_root *global_recvq;
+	fifo_root *global_recvq = NULL;
+	linklist_iter *reaper_iter = NULL;
 	
 	connection *temp = NULL;
 	char *line;
@@ -114,10 +139,11 @@ void cis_run (void)
 	/* main loop */
 	for(;;) {
 		
+		/** Grab some socket events to play with */
 		eventcount = socketengine->wait(read_events, write_events, 250);
 		r = w = 0;
 		
-		/* Run through the existing connections looking for data to read */
+		/** Run through the existing connections looking for data to read */
 		for(i = 0; (r+w) < eventcount; i++) {
 			if (read_events[i] != NULL)
 			{
@@ -134,6 +160,8 @@ void cis_run (void)
 			}
 		} // foreach (event)
 		
+		/** Process some of the readq */
+		
 		if (global_recvq->members > 0)
 		{
 			for (;;)
@@ -145,9 +173,9 @@ void cis_run (void)
 					patience = 250;
 					break;
 				}
-				if ((temp->state.dead == 0)&&(temp->recvq->members > 0))
+				if ((temp->state.local_dead == 0)&&(temp->recvq->members > 0))
 				{
-					/* Dead connections don't get processed ... closed ones -do- (since they may have closed after sending this...) */
+					/* Dead connections don't get processed ... remote dead ones -do- (since they died after sending this...) */
 					line = fifo_pop( temp->recvq );
 					
 					if (temp->callback_read)
@@ -159,7 +187,11 @@ void cis_run (void)
 					
 					/* Only remove from the global recvq if we've finished processing it's messages */
 					if (temp->recvq->members == 0)
+					{
 						fifo_pop(global_recvq);
+						if (temp->state.remote_dead == 1)
+							cis_reap_connection(temp);
+					}
 					
 					free(line);
 					
@@ -171,22 +203,39 @@ void cis_run (void)
 				}
 				else
 				{
-					/* So this is either dead, or has no recvq ... both could happen, but ignore it either way */
+					/* So this is either locally dead, or has no recvq ... both could happen, but ignore it either way */
 					fifo_pop(global_recvq);
 					
 					if (temp->recvq->members > 0)
 					{
-						/* Must be dead but with a recvq still ... decrease the recvq
-						 * don't worry about the size though, if it's dead then it can't get bigger
-						 */
-						line = fifo_pop(temp->recvq);
-						free(line);
+						/* Must be locally dead but with a recvq still ... this shouldn't be possible? */
+						discard_recvq(temp);
+						fifo_del(global_recvq, temp);
 					}
 					/* Since we didn't do much with this one, we'll try another pass... */
 				}
 			}
 		}
 		
+		/** Attempt to reap connections... */
+		reaper_iter = linklist_iter_create(reaper_list);
+		while (temp = linklist_iter_next(reaper_iter))
+		{
+			/* Remove it from any relevant queues... */
+			linklist_iter_del(reaper_iter);
+			fifo_del(global_recvq,temp);
+			/* Make sure it's all closed down... */
+			temp->close(temp);
+			/* Free the important stuff.... */
+			if (temp->name)				free(temp->name);
+			if (temp->recvq)			fifo_free(temp->recvq);
+			if (temp->recvq_buf)	free(temp->recvq_buf);
+			if (temp->sendq)			fifo_free(temp->sendq);
+			if (temp->sendq_buf)	free(temp->sendq_buf);
+			free(temp);
+		}
+		linklist_iter_free(reaper_iter);
+
 		//processTimers();
 	}
 	return;
