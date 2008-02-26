@@ -175,7 +175,7 @@ void cis_run (void)
 				}
 				if ((temp->state.local_dead == 0)&&(temp->recvq->members > 0))
 				{
-					/* Dead connections don't get processed ... remote dead ones -do- (since they died after sending this...) */
+					/* Local dead connections don't get processed ... remote dead ones -do- (since they died after sending this...) */
 					line = fifo_pop( temp->recvq );
 					
 					if (temp->callback_read)
