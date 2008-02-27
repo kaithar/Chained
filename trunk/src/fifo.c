@@ -77,6 +77,8 @@ int fifo_del(fifo_root *fifo, void *data)
 
 			if (fifo->first == curr)
 				fifo->first = curr->next;
+			else
+				last->next = curr->next;
 
 			/* Finish the sucker off!
 			 * Todo: Some sort of free'd list? Save a few malloc/free calls?
