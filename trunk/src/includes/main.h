@@ -7,6 +7,7 @@
 
 extern int DEBUG;
 extern socket_engine *socketengine;
+extern int cis_toggle_fairness ();
 
 extern void cis_reap_connection(connection *cn);
 

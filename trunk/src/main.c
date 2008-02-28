@@ -36,6 +36,21 @@ socket_engine *socketengine = NULL;
 connection *connections[__MAXFDS__];
 
 /**
+ * @brief Would you like me to be fair?
+ * @internal
+ */
+static int equal_fairness = 1;
+
+/**
+ * @brief Toggle Equal Fairnes on and off.
+ * @return int: New queue mode: 0 = first come first served, 1 = equal fairness.
+ */
+int cis_toggle_fairness ()
+{
+	return (equal_fairness = (equal_fairness ? 0 : 1));
+}
+
+/**
  * @brief Reaper...
  * This is where we store sockets we're waiting to reap.
  * Using a fifo here would have been nice, but we really do need to be able to iterate.
@@ -121,6 +136,7 @@ void cis_init (void)
 
 void cis_run (void)
 {
+	int temp_int = 0;
 	int i = 0, r, w;
 	int eventcount = 0;
 	connection *read_events[__MAXFDS__];
@@ -148,8 +164,10 @@ void cis_run (void)
 			if (read_events[i] != NULL)
 			{
 				r++;
+				temp_int = read_events[i]->recvq_size;
 				conn_read_to_recvq(read_events[i]);
-				fifo_add(global_recvq, read_events[i]);
+				if ((read_events[i]->recvq_size > temp_int) && ((equal_fairness == 0) || (temp_int == 0)))
+					fifo_add(global_recvq, read_events[i]);
 				/* Don't wait for data! too much to do! */
 				patience = 0;
 			}
@@ -164,9 +182,9 @@ void cis_run (void)
 		
 		if (global_recvq->members > 0)
 		{
-			for (;;)
+			for (i = 0; i <= 20; )
 			{
-				temp = fifo_peek(global_recvq);
+				temp = fifo_pop(global_recvq);
 				if (temp == NULL)
 				{
 					/* We seem to be out of connections to process... Have more patience waiting for new data ...*/
@@ -185,12 +203,28 @@ void cis_run (void)
 					if (temp->recvq_size < 0)
 						fprintf(stderr,"Um, negative recvq? Something is seriously wrong here.\n");
 					
-					/* Only remove from the global recvq if we've finished processing it's messages */
+					/* If it doesn't have any more messages left, nuke it from the queue... */
 					if (temp->recvq->members == 0)
 					{
-						fifo_pop(global_recvq);
+						fifo_del(global_recvq, temp);
 						if (temp->state.remote_dead == 1)
 							cis_reap_connection(temp);
+					}
+					else
+					{
+						if (equal_fairness == 1)
+						{
+							fifo_del(global_recvq, temp);
+							fifo_add(global_recvq, temp);
+						}
+						else
+						{
+							/* We shove it back on the end of the queue just in case there are insufficent instances to cover the buffer content.
+							 * While this behaviour won't break the code, it isn't true first come first served, and it will have a performance impact.
+							 * TODO: It would be nice to have an alternative ... possibly making conn_read_to_recvq return a line count to allow multiple additions
+							 */
+							fifo_add(global_recvq, temp);
+						}
 					}
 					
 					free(line);
@@ -204,15 +238,17 @@ void cis_run (void)
 				else
 				{
 					/* So this is either locally dead, or has no recvq ... both could happen, but ignore it either way */
-					fifo_pop(global_recvq);
-					
 					if (temp->recvq->members > 0)
 					{
 						/* Must be locally dead but with a recvq still ... this shouldn't be possible? */
 						discard_recvq(temp);
-						fifo_del(global_recvq, temp);
 					}
+					
+					/* In any case, if we're ignoring it, might as well remove it completely ... */
+					fifo_del(global_recvq, temp);
+					
 					/* Since we didn't do much with this one, we'll try another pass... */
+					i--;
 				}
 			}
 		}
