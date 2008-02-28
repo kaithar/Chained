@@ -221,3 +221,22 @@ void fifo_push(fifo_root *parent, void *data)
 	new->fifo = parent;
 	parent->members++;
 }
+
+/*
+ * This function prints the memory addresses of the links and content of a fifo ...
+ * It probably shouldn't be used unless you're debugging something.
+ */
+void fifo_print(fifo_root *p)
+{
+	fifo_link *temp = p->first;
+  printf("L: ");
+	for (;temp;temp = temp->next)
+		printf("%d > ",temp);
+	printf("\nD: ");
+
+	temp = p->first;
+	for (;temp;temp = temp->next)
+		printf("%d > ",temp->data);
+	printf("\n");
+}
+
