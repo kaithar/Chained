@@ -134,15 +134,21 @@ static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_
 
 static char config_unget_char (char c, FILE *configfile)
 {
-	if (inquotes == true)
+	if ((c == '"') || (c == "\'"))
 	{
-		inquotes = false;
-		quotechar = ' ';
-	}
-	else
-	{
-		inquotes = true;
-		quotechar = c;
+		if (inquotes == true)
+		{
+			if (quotechar == c)
+			{
+				inquotes = false;
+				quotechar = ' ';
+			}
+		}
+		else
+		{
+			inquotes = true;
+			quotechar = c;
+		}
 	}
 	
 	if ((c == '\\')&&(escaped == 2))
