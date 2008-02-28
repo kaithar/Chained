@@ -196,12 +196,12 @@ void cis_run (void)
 					/* Local dead connections don't get processed ... remote dead ones -do- (since they died after sending this...) */
 					line = fifo_pop( temp->recvq );
 					
-					if (temp->callback_read)
-						temp->callback_read(temp,line);
-					
 					temp->recvq_size -= strlen(line);
 					if (temp->recvq_size < 0)
 						fprintf(stderr,"Um, negative recvq? Something is seriously wrong here.\n");
+					
+					if (temp->callback_read)
+						temp->callback_read(temp,line);
 					
 					/* If it doesn't have any more messages left, nuke it from the queue... */
 					if (temp->recvq->members == 0)
