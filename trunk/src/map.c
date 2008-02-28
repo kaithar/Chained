@@ -607,6 +607,7 @@ int map_free(map_root *root)
 
 		slinklist_iter_free(temp);
 		slinklist_free(root->sll);
+		free(root->root.child);
 	}
 
 	free(root);
@@ -626,6 +627,12 @@ map_iter *map_iter_create(map_root *root)
 	temp->iter = slinklist_iter_create(root->sll);
 	
 	return temp;
+}
+
+void *map_iter_free(map_iter *iter)
+{
+	slinklist_iter_free(iter->iter);
+	free(iter);
 }
 
 void *map_iter_next(map_iter *iter)

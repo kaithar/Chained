@@ -60,7 +60,7 @@ extern void *map_iter_next(map_iter *iter);
 extern void map_iter_del(map_iter *iter);
 extern void *map_iter_prev(map_iter *iter);
 extern void map_iter_seek_start(map_iter *iter);
-#define map_iter_free(x) free(x)
+extern void *map_iter_free(map_iter *iter);
 
 extern void map_allow_preset(map_root *root, const int preset[257]);
 extern map_root *map_create_from_preset(const int preset[257]);
