@@ -13,9 +13,9 @@
 #include "chained.h"
 
 /*-----------------------------------*/
-#define KEY_PEM "conf/client_key.pem"
-#define CERT_PEM "conf/client_cert.pem"
-#define CA_PEM "conf/client_ca.pem"
+#define KEY_PEM "conf/key.pem"
+#define CERT_PEM "conf/cert.pem"
+#define CA_PEM "conf/ca.pem"
 
 SSL_CTX *ssl_client_ctx;	/* SSL context */
 SSL_CTX *ssl_server_ctx;	/* SSL server context */
@@ -94,12 +94,14 @@ bool cis_openssl_init()
 /*-----------------------------------*/
 void cis_openssl_port_upgrade(connection *on)
 {
+	cis_openssl_init();
 	on->enc_accept = &cis_openssl_accept;
 }
 
 int cis_openssl_accept(connection *conn)
 {
 	int i, j = 0;
+	cis_openssl_init();
 
 	if ((conn->ssl = SSL_new(ssl_server_ctx)) == NULL)
 	{
