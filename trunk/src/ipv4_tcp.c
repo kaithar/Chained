@@ -173,6 +173,8 @@ connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_p
 		fprintf(stderr,"TCP Client: Failed to connect to %s:%d ... Unknown host\n",target_host,target_port);
 		return NULL;
 	}
+
+	sprintf(newStream->source, "%s", dns_target);
   
 	their_addr.sin_family = AF_INET;
 	their_addr.sin_port = htons(target_port); // Short network byte order
