@@ -98,6 +98,8 @@ struct connection
 	int (*close)(connection *);
 	/*@}*/
 
+	/** Encryption upgrade... */
+	int (*enc_accept) (connection *);
 	/** Shutdown the encryption */
 	int (*enc_close) (connection *);
 

@@ -137,8 +137,15 @@ static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc)
 	
 	socketengine->add(newStream, 1, 0);
 	
+	if ((conn->enc_accept) && (conn->enc_accept(newStream) < 0))
+	{
+		printf("Enc_accept failed, closing connection.\n");
+		ipv4_tcp_close(newStream);
+		return -1;
+	}
+	
 	if (conn->callback_accept)
-		conn->callback_accept(conn,newStream);
+		conn->callback_accept(conn, newStream);
 	
 	return 0;
 }
