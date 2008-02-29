@@ -9,6 +9,7 @@
 /* Some ssl headers */
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <fcntl.h> // O_NONBLOCK F_GETFL F_SETFL
 
 #include "chained.h"
 
@@ -134,6 +135,53 @@ int cis_openssl_accept(connection *conn)
 	conn->write = &cis_openssl_write;
 
 	return 0;
+}
+
+/**
+ * This works on -outgoing- connections ... hence the client bit.
+ * That means you are -requesting- ssl, while the accept function above is -accepting- ssl
+ * FIXME: This needs to be made async...
+ */
+int cis_openssl_client_upgrade(connection *stream)
+{
+  int i,foo = 0;
+  int flags = 0;
+
+  printf("SSL: Upgrading connection\n");
+	cis_openssl_init();
+
+  /* Make it ssl */
+	if ((stream->ssl = SSL_new(ssl_client_ctx)) == NULL)
+	{
+		printf("SSL_new failed!\n");
+		return -1;
+	}
+	
+  SSL_set_fd(stream->ssl, stream->fd);
+  SSL_set_connect_state(stream->ssl);
+
+  /* HACK!!! */
+  flags = fcntl(stream->fd,F_GETFL, 0);
+  flags &= ~O_NONBLOCK;
+  fcntl(stream->fd,F_SETFL,flags);
+  /* ---- */
+
+  if ((i = SSL_connect(stream->ssl)) <= 0) {
+		foo = SSL_get_error(stream->ssl,i);
+    printf("Upgrading SSL_connect failed! %d: %s\n", foo, ERR_error_string(foo, NULL));
+  }
+
+  /* HACK!!! */
+  flags = fcntl(stream->fd,F_GETFL, 0);
+  flags |= O_NONBLOCK;
+  fcntl(stream->fd,F_SETFL,flags);
+  /* ---- */
+
+  stream->write = &cis_openssl_write;
+  stream->read = &cis_openssl_read;
+  stream->enc_close = &cis_openssl_close;
+  printf("SSL: Upgrade complete\n");
+  return 0;
 }
 
 int cis_openssl_write(connection *stream, char *str)
