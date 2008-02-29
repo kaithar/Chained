@@ -1,5 +1,16 @@
 #include <chained.h>
 
+int ssl_write_test(connection *cn, unsigned char *line)
+{
+	static int oneshot = 0;
+	printf("%d> %s\n",cn->fd,line);
+	if (oneshot == 0)
+	{
+		cprintf(cn,"Success!\n");
+		oneshot = 1;
+	}
+}
+
 int raw_printer(connection *cn, unsigned char *line)
 {
 	printf("%d> %s\n",cn->fd,line);
@@ -53,6 +64,8 @@ int main ()
 		test->callback_close = &close_callback;
 	}
 
+#ifdef __CIS_HAS_OPENSSL__
+
 	test = ipv4_tcp_listen("test-ssl","0.0.0.0",2336);
 	
 	if (test != NULL)
@@ -61,6 +74,21 @@ int main ()
 		test->callback_close = &close_callback;
 		cis_openssl_port_upgrade(test);
 	}
+	else
+	{
+		test = ipv4_tcp_connect("test-outgoing-ssl","127.0.0.1",2336);
+		
+		if (test != NULL)
+		{
+			test->callback_read = &ssl_write_test;
+			test->callback_close = &close_callback;
+			cis_openssl_client_upgrade(test);
+			cprintf(test,"What are you waiting for?\n");
+		}
+	}
+
+#endif
 	
+	printf("Going loopy...\n");
 	cis_run();
 }
