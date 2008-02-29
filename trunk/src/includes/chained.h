@@ -62,6 +62,7 @@ typedef char bool;
 #include <config_reading.h>
 #include <events.h>
 #include <modules.h>
+#include <ssl.h>
 
 /*@}*/
 

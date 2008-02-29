@@ -47,9 +47,40 @@ if ($makeinstall eq "") { $makeinstall = $last_makeinstall; }
 
 $makeinstall =~ s/\/*$//;
 
-print LR "\$last_makeinstall='$makeinstall'";
+print LR "\$last_makeinstall='$makeinstall';\n";
 
 #############################
+
+print "\nLooking for openssl... ";
+if (-f "/usr/include/openssl/opensslv.h")
+{
+  print "found!
+You appear to have OpenSSL support available.
+Do you wish to compile support for it? [y/n] ($last_openssl) ";
+
+  chomp($openssl = <STDIN>);
+  if ($openssl eq "") { $openssl = $last_openssl; }
+
+  $openssl =~ s/^(.).*$/\1/;
+
+  if (($openssl eq "n") or ($openssl eq "N"))
+	{
+	  $openssl = "n";
+  }
+  else
+	{
+	  print "Compiling OpenSSL support!\n";
+	  $openssl = "y";
+		$libs .= " -lssl"
+	}
+}
+else
+{
+  print "not found.\n";
+  $openssl = "n";
+}
+
+print LR "\$last_openssl='$openssl';\n";
 
 close LR;
 rename "config.lastrun~", "config.lastrun";
@@ -85,6 +116,19 @@ print MC "\n";
 close GREP;
 close MC;
 
+#####################################
+
+print "> src/includes/config.h\n";
+
+open(MC, ">config.h");
+
+if ($openssl eq "y")
+{
+  print MC "#define __CIS_HAS_OPENSSL__ 1\n";
+}
+
+close MC;
+
 chdir "..";
 
 ####################################
@@ -105,6 +149,12 @@ while (<GREP>)
   $OBJS .= " $f";
 }
 close GREP;
+
+# HACK: FIXME: This needs to be handled better!
+if ($openssl eq "y") 
+{
+  $OBJS .= " openssl.o";
+}
 
 print MF "INCLUDE_DIR = includes/
 
