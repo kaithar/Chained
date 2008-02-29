@@ -134,7 +134,7 @@ static char config_get_char (FILE *configfile, bool skip_whitespace, bool fatal_
 
 static char config_unget_char (char c, FILE *configfile)
 {
-	if ((c == '"') || (c == "\'"))
+	if ((c == '"') || (c == '\''))
 	{
 		if (inquotes == true)
 		{
