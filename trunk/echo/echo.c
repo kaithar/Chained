@@ -45,12 +45,21 @@ int main ()
 	
 	cis_load_config("test.conf");
 		
-	test = ipv4_tcp_listen("test","192.168.0.70",2335);
+	test = ipv4_tcp_listen("test","0.0.0.0",2335);
+		
+	if (test != NULL)
+	{
+		test->callback_accept = &accept_callback;
+		test->callback_close = &close_callback;
+	}
+
+	test = ipv4_tcp_listen("test-ssl","0.0.0.0",2336);
 	
 	if (test != NULL)
 	{
 		test->callback_accept = &accept_callback;
 		test->callback_close = &close_callback;
+		cis_openssl_port_upgrade(test);
 	}
 	
 	cis_run();
