@@ -13,7 +13,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-connection *ipv4_tcp_listen(char *name, char *ip, int target_port);
+connection *ipv4_tcp_listen(char *name, char *target_ip, int target_port);
 static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc);
 connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_port);
 int ipv4_tcp_read(connection *, int how_much, char *buffer);
