@@ -133,6 +133,7 @@ int cis_openssl_accept(connection *conn)
 	conn->enc_close = &cis_openssl_close;
 	conn->read = &cis_openssl_read;
 	conn->write = &cis_openssl_write;
+	conn->state.can_shutdown = 0;
 
 	return 0;
 }
@@ -180,6 +181,7 @@ int cis_openssl_client_upgrade(connection *stream)
   stream->write = &cis_openssl_write;
   stream->read = &cis_openssl_read;
   stream->enc_close = &cis_openssl_close;
+	stream->state.can_shutdown = 0;
   printf("SSL: Upgrade complete\n");
   return 0;
 }
