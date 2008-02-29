@@ -24,10 +24,10 @@ int close_callback(connection *cn)
 
 int accept_callback (connection *parent, connection *cn)
 {
-	printf("New connection!\n");
+	printf("New connection from %s!\n",cn->source);
 	cn->callback_read = &raw_printer;
 	cn->callback_close = &close_callback;
-	cprintf(cn,"Hi there!\n");
+	cprintf(cn,"Hi there, %s!\n", cn->source);
 }
 
 int testcallback (cis_config_node *test)

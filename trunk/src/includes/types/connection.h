@@ -18,7 +18,10 @@ struct connection
 	/** This should be used to name the connection. */
 	char *name;
 	int fd;
-  
+
+	/** This contains some sort of meaningful source string... like an ip */
+  char source[256];
+
 	/** This represents something meaningful to the main app */
 	void *data;
   /** This is an extra little flag, just in case you want to use multiple types of socket. */

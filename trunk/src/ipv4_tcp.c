@@ -115,6 +115,8 @@ static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc)
 		return 0;
 	}
 	
+	sprintf(newStream->source, "%s", inet_ntoa(their_addr.sin_addr));
+	
 	newStream->name = strdup(conn->name);
 	newStream->read = &ipv4_tcp_read;
 	newStream->write = &ipv4_tcp_write;
