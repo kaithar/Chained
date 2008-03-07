@@ -174,7 +174,7 @@ connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_p
 		return NULL;
 	}
 
-	sprintf(newStream->source, "%s", dns_target);
+	sprintf(conn->source, "%s", dns_target);
   
 	their_addr.sin_family = AF_INET;
 	their_addr.sin_port = htons(target_port); // Short network byte order
