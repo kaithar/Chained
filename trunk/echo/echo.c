@@ -88,7 +88,7 @@ int main ()
 	}
 
 #endif
-	
+
 	printf("Going loopy...\n");
 	cis_run();
 }

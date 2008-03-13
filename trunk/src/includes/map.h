@@ -86,4 +86,6 @@ extern const int MAP_ALLOW_TRIGGER_CHARS[257];
 extern const int ALLOWED_NICK_CHARS[257];
 extern const int ALLOWED_CHAN_CHARS[257];
 
+extern const int MAP_ALLOW_PM_KEYS[257];
+
 #endif
