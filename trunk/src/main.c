@@ -121,6 +121,19 @@ void cis_init (void)
 	initd = 1;
 }
 
+static bool reactor_running = false;
+
+/**
+ * @brief Kick out of the main loop
+ * Use this if you want to stop the reactor
+ */
+
+void cis_kill_reactor (void)
+{
+	reactor_running = false;
+}
+
+
 /**
  * @brief I make the magic happen... I am the main loop!
  * This function contains the main "reactor" loop...\n
@@ -150,10 +163,12 @@ void cis_run (void)
 	
 	int patience = 250;
 	
+	reactor_running = true;
+
 	global_recvq = fifo_create();
 
 	/* main loop */
-	for(;;) {
+	for(;reactor_running;) {
 		
 		/** Grab some socket events to play with */
 		eventcount = socketengine->wait(read_events, write_events, 250);
