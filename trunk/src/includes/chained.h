@@ -64,6 +64,7 @@ typedef char bool;
 #include <events.h>
 #include <modules.h>
 #include <ssl.h>
+#include <timers.h>
 
 /*@}*/
 

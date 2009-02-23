@@ -1,19 +1,20 @@
-/*
- * Mythica
- * Core code...
- * Timers ... fun little things.
- *
- * We don't use linklisk_*() here because we require an int sorted list...
+/**
+ * @file timers.c
+ * @brief Timed events, rather important.
+ * Chained in Sanity.
+ * Core Library.
+ * Code for handling timed events
+ * We don't use linklist_*() here because we require an int sorted list...
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <math.h>
-#include <sys/types.h>
-#include <time.h>
+#include "chained.h"
 
-#include "globals.h"
+// #include <stdlib.h>
+// #include <string.h>
+// #include <unistd.h>
+// #include <math.h>
+// #include <sys/types.h>
+// #include <time.h>
 
 static timer_event *firstevent = 0;
 static timer_event *lastevent = 0;

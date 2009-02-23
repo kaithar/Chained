@@ -287,7 +287,7 @@ void cis_run (void)
 		}
 		linklist_iter_free(reaper_iter);
 
-		//processTimers();
+		timers_process();
 	}
 	return;
 }
