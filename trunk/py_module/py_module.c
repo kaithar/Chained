@@ -38,7 +38,7 @@ chained_connect(PyObject *self, PyObject *args)
 }
 
 
-static PyMethodDef chained_methods[] = {
+static PyMethodDef net_methods[] = {
     {"run", chained_run, METH_NOARGS, "Start the reactor"},
     {"connect", chained_connect, METH_VARARGS, "Make a tcp connection"},
     {NULL}  /* Sentinel */
@@ -69,13 +69,19 @@ initnet(void)
     if (PyType_Ready(&pyConnectionType) < 0)
         return;
 
-    m = Py_InitModule3("chained.net", chained_methods,
+    if (PyType_Ready(&pyTimerType) < 0)
+        return;
+
+    m = Py_InitModule3("chained.net", net_methods,
                        "Network communications library.");
 
     Py_INCREF(&pyPortType);
     PyModule_AddObject(m, "Port", (PyObject *)&pyPortType);
     Py_INCREF(&pyConnectionType);
     PyModule_AddObject(m, "Connection", (PyObject *)&pyConnectionType);
+
+    Py_INCREF(&pyTimerType);
+    PyModule_AddObject(m, "Timer", (PyObject *)&pyTimerType);
 
     old_sigint = PyOS_setsig(SIGINT, &int_handler);
 }

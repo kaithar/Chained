@@ -37,6 +37,17 @@ typedef struct {
 
 extern PyTypeObject pyPortType;
 
+/* Timer.c */
+
+typedef struct {
+    PyObject_HEAD;
+    /* Type-specific fields go here. */
+    timer_event *ev;
+    PyObject *callback;
+} pyTimer;
+
+extern PyTypeObject pyTimerType;
+
 /* Connection_api.c */
 
 extern PyObject* Connection_write(pyConnection *self, PyObject *args);

@@ -8,7 +8,7 @@ module1 = Extension('chained.net',
                     library_dirs = ['/opt/chained/libs'],
                     sources = ['py_module.c',
 				'Connection_api.c', 'Connection_getset_funcs.c', 'pyConnection.c',
-				'Port_api.c', 'pyPort.c'],
+				'Port_api.c', 'pyPort.c', 'pyTimer.c'],
 		    extra_compile_args = ['-ggdb'],
 		    extra_link_args = ['--rpath=/opt/chained/libs'])
 
