@@ -17,8 +17,8 @@ struct timer_event
 	unsigned int when;										/**< When does this timer trigger? */
 	int delay;														/**< Delay before retriggering */
 	int repetitions;											/**< How many times to do this event */
-	int callback_param;										/**< param for callback */
-	int (*callback)(timer_event *, int);	/**< the callback for this event, int is some sort of value meaningful to the callback */
+	void *callback_param;									/**< param for callback */
+	int (*callback)(timer_event *, void*); /**< the callback for this event, void* is some sort of value meaningful to the callback */
 };
 
 #endif
