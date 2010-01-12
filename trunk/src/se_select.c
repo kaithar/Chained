@@ -1,7 +1,7 @@
 // Chained In Sanity
 // select socket engineeeee
 
-#include <chained.h>
+#include "libchained/chained.h"
 
 #include <stdlib.h>
 #include <string.h>

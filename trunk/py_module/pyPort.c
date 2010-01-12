@@ -83,7 +83,7 @@ static PyMethodDef Port_methods[] = {
 PyTypeObject pyPortType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
-    "chained.Port",             /*tp_name*/
+    "chained.primative.net.Port",             /*tp_name*/
     sizeof(pyPort),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     Port_dealloc,              /*tp_dealloc*/

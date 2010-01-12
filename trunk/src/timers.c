@@ -7,7 +7,7 @@
  * We don't use linklist_*() here because we require an int sorted list...
  */
 
-#include "chained.h"
+#include "libchained/chained.h"
 
 // #include <stdlib.h>
 // #include <string.h>

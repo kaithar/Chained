@@ -3,7 +3,7 @@
  * This file contains various functions for simplifing the handling of strings.
  */
 
-#include <chained.h>
+#include "libchained/chained.h"
 
 /**
  * I break a line according to the provided end of line characters.

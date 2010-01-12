@@ -2,8 +2,6 @@
 
 # Chained's new configure script ... thanks to InspIRCd for saving me a lot of manual reading :P
 
-$last_makeinstall = "/opt/chained";
-
 if ( -f "./config.lastrun")
 {
   eval { do "./config.lastrun"; }
@@ -40,14 +38,7 @@ print "
 Attempting to detect OS capabilities
 ====================================
 
-Where would you like \"make install\" to install to? ($last_makeinstall) ";
-
-chomp($makeinstall = <STDIN>);
-if ($makeinstall eq "") { $makeinstall = $last_makeinstall; }
-
-$makeinstall =~ s/\/*$//;
-
-print LR "\$last_makeinstall='$makeinstall';\n";
+Installing to /usr/lib/libchained.so and /usr/include/libchained/ \n";
 
 #############################
 
@@ -84,7 +75,7 @@ print LR "\$last_openssl='$openssl';\n";
 
 close LR;
 rename "config.lastrun~", "config.lastrun";
-system "mkdir -p $makeinstall";
+
 
 #######################################################################
 #######################################################################
@@ -94,14 +85,14 @@ print "\nCreating Makefiles...\n";
 
 #####################################
 
-print "> src/includes/Make_config\n";
+print "> src/libchained/Make_config\n";
 
-chdir "src/includes/";
+chdir "src/libchained/";
 
 open(MC, ">Make_config");
 
 print MC "CC = gcc
-CFLAGS = -export-dynamic -g -fPIC -pipe -I\$(INCLUDE_DIR)
+CFLAGS = -export-dynamic -g -fPIC
 LIBS = $libs
 INCLUDES = ";
 
@@ -118,7 +109,7 @@ close MC;
 
 #####################################
 
-print "> src/includes/config.h\n";
+print "> src/libchained/config.h\n";
 
 open(MC, ">config.h");
 
@@ -156,7 +147,7 @@ if ($openssl eq "y")
   $OBJS .= " openssl.o";
 }
 
-print MF "INCLUDE_DIR = includes/
+print MF "INCLUDE_DIR = libchained/
 
 include \$(INCLUDE_DIR)Make_config
 OBJS = $OBJS
@@ -176,11 +167,12 @@ clean:
 # ----
 
 install:
-	mkdir -p $makeinstall/libs
-	cp *.so $makeinstall/libs
-	mkdir -p $makeinstall/includes/types
-	cp includes/*.h $makeinstall/includes
-	cp includes/types/*.h $makeinstall/includes/types
+	cp libchained.so /usr/lib/libchained.so.0.0
+	cp libchained.so /usr/lib/libchained.so.0
+	cp libchained.so /usr/lib/libchained.so
+	mkdir -p /usr/include/libchained/types
+	cp libchained/*.h /usr/include/libchained/
+	cp libchained/types/*.h /usr/include/libchained/types
 ";
 
 close MF;
@@ -197,7 +189,7 @@ open (MF, ">Makefile");
 print MF "all: echo
 
 echo: echo.c
-	gcc -L$makeinstall/libs -Wl,--rpath -Wl,$makeinstall/libs -lchained -g -fPIC -I$makeinstall/includes/ -o echo echo.c
+	gcc -lchained -g -fPIC -o echo echo.c
 
 clean:
 	rm echo

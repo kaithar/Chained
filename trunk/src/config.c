@@ -6,7 +6,7 @@
  * This file reads in a config.
  */
 
-#include "chained.h"
+#include "libchained/chained.h"
 #include <string.h>
 
 static int cis_config_line = 0;

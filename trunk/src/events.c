@@ -7,7 +7,7 @@
 
 #include <stdarg.h> /* va_*() */
 
-#include "chained.h"
+#include "libchained/chained.h"
 
 map_root *hooks_map = NULL;
 

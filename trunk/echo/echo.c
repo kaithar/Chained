@@ -1,4 +1,4 @@
-#include <chained.h>
+#include <libchained/chained.h>
 
 int ssl_write_test(connection *cn, unsigned char *line)
 {

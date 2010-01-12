@@ -6,7 +6,7 @@
  * This is where the main core stuff happens
  */
 
-#include "chained.h"
+#include "libchained/chained.h"
 #include <sys/resource.h> /* For rlimit stuff */
 #include <string.h>
 

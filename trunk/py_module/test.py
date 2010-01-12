@@ -1,16 +1,7 @@
-import chained.cnet as chained
+from chained import run
+import chained.net.Port
 
 conns = []
-
-class testport (object):
-	def onAccept(self, p, cn):
-		cn.protocol = testproto()
-		conns.append(cn)
-		print `conns`
-		print "New connection from %s"%(cn.source)
-		for c in conns:
-			c.write("%d -- New connection from %s\n"%(cn.fd,cn.source))
-		cn.write("Hey there %s\n"%(cn.source))
 
 class testproto (object):
 	def onRead (self, cn, line):
@@ -24,7 +15,18 @@ class testproto (object):
 		for c in conns:
 			c.write("%d -- Connection closed\n"%(cn.fd,cn.source))
 
-f = chained.Port("test port", "0.0.0.0", 23568, testport())
+class testport (chained.net.Port):
+	name = "Test port"
+	protocol = testproto
+	port = 23568
+	def onAccept(self, cn):
+		print "New connection from %s"%(cn.source)
+		for c in self.connections:
+			c.write("%d -- New connection from %s\n"%(cn.fd,cn.source))
+		cn.write("Hey there %s\n"%(cn.source))
+
+
+f = testport()
 try:
 #	g = chained.connect("test conn", "fire.pounces.me", 6667)
 	print `g`
@@ -32,7 +34,7 @@ try:
 except:
 	pass
 try:
-	chained.run()
+	run()
 except:
 	pass
 

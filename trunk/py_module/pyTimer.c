@@ -85,7 +85,7 @@ static PyMethodDef Timer_methods[] = {
 PyTypeObject pyTimerType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
-    "chained.Timer",             /*tp_name*/
+    "chained.primative.net.Timer",             /*tp_name*/
     sizeof(pyTimer),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     Timer_dealloc,              /*tp_dealloc*/

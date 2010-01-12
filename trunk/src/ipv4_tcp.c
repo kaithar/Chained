@@ -4,7 +4,7 @@
  * This module abstracts the stuff that is particular to tcp over ipv4
  */
 
-#include <chained.h>
+#include "libchained/chained.h"
 
 #include <fcntl.h>		/* O_NONBLOCK F_GETFL F_SETFL */
 #include <sys/socket.h>

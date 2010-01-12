@@ -3,7 +3,7 @@
  * Modules support!
  */
 
-#include "chained.h"
+#include "libchained/chained.h"
 #include <string.h>
 #include <unistd.h>
 #include <dlfcn.h>		/* Dynamic loading stuff */

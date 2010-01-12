@@ -1,8 +1,8 @@
 /* Includes */
-#include <Python.h>
-#include "structmember.h"
+#include <python2.6/Python.h>
+#include "python2.6/structmember.h"
 
-#include "chained.h"
+#include "libchained/chained.h"
 
 /* Defines */
 

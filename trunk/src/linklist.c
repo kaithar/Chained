@@ -4,7 +4,7 @@
  * Link list management.
  */
 
-#include <chained.h>
+#include "libchained/chained.h"
 
 /*
  * Link lists ...

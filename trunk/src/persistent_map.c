@@ -8,7 +8,7 @@
  * inclined to implement wrappers for them.
  */
 
-#include <chained.h>
+#include "libchained/chained.h"
 
 pm_root *cis_pm_create (char *filename)
 {

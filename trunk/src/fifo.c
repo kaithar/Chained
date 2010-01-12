@@ -4,7 +4,7 @@
  * FIFO management.
  */
 
-#include <chained.h>
+#include "libchained/chained.h"
 
 /*
  * First function is create, very simplistic really

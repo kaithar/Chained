@@ -1,10 +1,10 @@
-#import "common.h"
+#include "common.h"
 
 int port_close_callback(connection *cn)
 {
 	PyObject *tmp;
 	pyPort * self = (pyPort *) cn->data;
-	tmp = PyObject_CallMethodObjArgs(self->factory, PyString_FromString("onClose"), self, NULL);
+	tmp = PyObject_CallMethodObjArgs(self->factory, PyString_FromString("closed"), self, NULL);
 	if ((tmp == NULL) && (PyErr_Occurred() != NULL))
 		PyErr_Print();
 	Py_XDECREF(tmp);
@@ -30,7 +30,7 @@ int accept_callback (connection *parent, connection *cn)
 	ncn->conn = cn;
 	cn->data = ncn;
 
-	tmp = PyObject_CallMethodObjArgs(((pyPort *)parent->data)->factory, PyString_FromString("onAccept"), ((pyPort *)parent->data), ncn, NULL);
+	tmp = PyObject_CallMethodObjArgs(((pyPort *)parent->data)->factory, PyString_FromString("accepted"), ncn, NULL);
 	if ((tmp == NULL) && (PyErr_Occurred() != NULL))
 		PyErr_Print();
 	Py_XDECREF(tmp);

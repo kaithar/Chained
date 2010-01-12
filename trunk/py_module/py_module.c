@@ -72,11 +72,12 @@ initnet(void)
     if (PyType_Ready(&pyTimerType) < 0)
         return;
 
-    m = Py_InitModule3("chained.net", net_methods,
+    m = Py_InitModule3("chained.primative.net", net_methods,
                        "Network communications library.");
 
     Py_INCREF(&pyPortType);
     PyModule_AddObject(m, "Port", (PyObject *)&pyPortType);
+    
     Py_INCREF(&pyConnectionType);
     PyModule_AddObject(m, "Connection", (PyObject *)&pyConnectionType);
 

@@ -1,5 +1,5 @@
 
-#include <chained.h>
+#include "libchained/chained.h"
 
 void  *smalloc(int size)
 {

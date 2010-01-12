@@ -39,7 +39,7 @@ static PyGetSetDef Connection_getseters[] = {
 PyTypeObject pyConnectionType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
-    "chained.Connection",      /*tp_name*/
+    "chained.primative.net.Connection",      /*tp_name*/
     sizeof(pyConnection),      /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     Connection_dealloc,        /*tp_dealloc*/

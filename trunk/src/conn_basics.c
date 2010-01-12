@@ -7,7 +7,7 @@
  * These method's should work happily on any connection type.
  */
 
-#include <chained.h>
+#include "libchained/chained.h"
 #include <stdarg.h>		/* va_*() */
 
 /**
