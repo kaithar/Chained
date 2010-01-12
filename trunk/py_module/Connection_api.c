@@ -4,7 +4,7 @@ int Connection_read_callback(connection *cn, unsigned char *line)
 {
 	PyObject *tmp;
 	pyConnection *self = (pyConnection *)cn->data;
-	tmp = PyObject_CallMethodObjArgs(self->protocol, PyString_FromString("onRead"), self, PyString_FromString(line), NULL);
+	tmp = PyObject_CallMethodObjArgs(self->protocol, PyString_FromString("reading"), self, PyString_FromString(line), NULL);
 	if ((tmp == NULL) && (PyErr_Occurred() != NULL))
 		PyErr_Print();
 	Py_XDECREF(tmp);
@@ -14,7 +14,7 @@ int Connection_close_callback(connection *cn)
 {
 	PyObject *tmp;
 	pyConnection * self = (pyConnection *)cn->data;
-	tmp = PyObject_CallMethodObjArgs(self->protocol, PyString_FromString("onClose"), self, NULL);
+	tmp = PyObject_CallMethodObjArgs(self->protocol, PyString_FromString("closing"), self, NULL);
 	if ((tmp == NULL) && (PyErr_Occurred() != NULL))
 		PyErr_Print();
 	Py_XDECREF(tmp);
