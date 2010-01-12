@@ -1,19 +1,20 @@
 from chained import run
 import chained.net.Port
+import chained.net.Protocol
 
 conns = []
 
-class testproto (object):
-	def onRead (self, cn, line):
-		print cn.fd,">",line
+class testproto (chained.net.Protocol):
+
+	def onRead (self, line):
+		print self.connection.fd,">",line
 		for c in conns:
-			c.write("%d > %s\n"%(cn.fd, line))
-	def onClose (self, cn):
-		conns.remove(cn)
-		print `conns`
-		print cn.fd,"-- Connection closed"
+			c.write("%d > %s\n"%(self.connection.fd, line))
+
+	def onClose (self):
+		print self.connection.fd,"-- Connection closed"
 		for c in conns:
-			c.write("%d -- Connection closed\n"%(cn.fd,cn.source))
+			c.write("%d -- Connection closed\n"%(self.connection.fd,self.connection.source))
 
 class testport (chained.net.Port):
 	name = "Test port"
