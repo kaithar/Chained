@@ -18,7 +18,7 @@ class Port (object):
 		self.connection = chained.Port(self.name, self.ip, self.port, self)
 
 	def accepted(self, cn):
-		cn.protocol = self.protocol()
+		cn.protocol = self.protocol(cn, self)
 		self.connections.append(cn)
 		self.onAccept(cn)
 
