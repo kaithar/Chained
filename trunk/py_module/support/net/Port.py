@@ -19,7 +19,7 @@ class Port (object):
 
 	def accepted(self, cn):
 		cn.protocol = self.protocol(cn, self)
-		self.connections.append(cn)
+		self.connections.append(cn.protocol)
 		self.onAccept(cn)
 
 	def onAccept(self, cn):

@@ -15,9 +15,12 @@ class Protocol (object):
 
 	def closing(self, cn):
 			if self.parent:
-				self.parent.connections.remove(cn)
+				self.parent.connections.remove(self)
 			self.onClose()
 
 	def onClose(self):
 		# Override me
 		pass
+
+        def write(self, line):
+                self.connection.write(line)
