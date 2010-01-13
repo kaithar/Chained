@@ -26,3 +26,5 @@ class Port (object):
 		# Override me!
 		pass
 
+	def childClosed(self, cn):
+		self.connections.remove(cn)

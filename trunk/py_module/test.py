@@ -4,8 +4,8 @@ import chained.net.Protocol
 
 conns = []
 
-class testproto (chained.net.Protocol):
 
+class testproto (chained.net.Protocol):
 	def onRead (self, line):
 		print self.connection.fd,">",line
 		for c in conns:
@@ -15,6 +15,47 @@ class testproto (chained.net.Protocol):
 		print self.connection.fd,"-- Connection closed"
 		for c in conns:
 			c.write("%d -- Connection closed\n"%(self.connection.fd,self.connection.source))
+
+
+class ConnectFactory (object):
+	autoconnect = True
+	reconnect = False
+
+	name = "Connection"
+	address = "127.0.0.1"
+	port = 0
+	protocol = None
+
+	# Stuff you should leave alone.
+	connection = None
+
+	def __init__(self):
+		if self.autoconnect:
+			self.connect()
+
+	def onConnect(self, cn):
+		pass
+
+	def onChildClosed(self, cn):
+		pass
+
+	def childClosed(self, cn):
+		self.connection = None
+
+	def reconnect(self):
+		pass
+
+	def connect(self):
+		if self.connection:
+			raise Exception("Factory already connected")
+		pass
+
+class testconnecter (ConnectFactory):
+	name = "Test connect"
+	address = "127.0.0.1"
+	port = 10021
+	protocol = testproto
+
 
 class testport (chained.net.Port):
 	name = "Test port"
