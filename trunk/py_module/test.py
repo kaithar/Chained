@@ -48,7 +48,9 @@ class ConnectFactory (object):
 	def connect(self):
 		if self.connection:
 			raise Exception("Factory already connected")
-		pass
+		cn = chained.connect(self.name, self.address, self.port)
+                self.connection = self.protocol(cn, self)
+                cn.protocol = self.connection
 
 class testconnecter (ConnectFactory):
 	name = "Test connect"
