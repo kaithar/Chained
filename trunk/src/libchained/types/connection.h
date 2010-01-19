@@ -20,12 +20,13 @@ struct connection
 	int fd;
 
 	/** This contains some sort of meaningful source string... like an ip */
-  char source[256];
+        char source[256];
 
 	/** This represents something meaningful to the main app */
 	void *data;
-  /** This is an extra little flag, just in case you want to use multiple types of socket. */
-  int conn_mark;
+
+        /** This is an extra little flag, just in case you want to use multiple types of socket. */
+        int conn_mark;
 
 	/** This contains the error that killed the connection */
 	int syscall_error;
@@ -36,6 +37,11 @@ struct connection
 	 */
 	struct
 	{
+                /**
+                  * Connecting
+                  */
+                unsigned int connecting:1;
+                
 		/**
 		  * This signifies that the connection has been added to the reaper.
 		  */

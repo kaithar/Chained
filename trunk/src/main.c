@@ -105,7 +105,7 @@ void cis_drop_cores (void)
 
 void cis_init (void)
 {
-	static initd = 0;
+	static char initd = 0;
 	
 	if (initd == 1)
 		fprintf(stderr,"You attempted to initalize the library twice!\n");
