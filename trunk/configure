@@ -85,29 +85,7 @@ print "\nCreating Makefiles...\n";
 
 #####################################
 
-print "> src/libchained/Make_config\n";
-
 chdir "src/libchained/";
-
-open(MC, ">Make_config");
-
-print MC "CC = gcc
-CFLAGS = -export-dynamic -g -fPIC
-LIBS = $libs
-INCLUDES = ";
-
-open (GREP, 'grep -L "CHAINED: IGNORE" *.h|');
-while (<GREP>)
-{
-  $f = $_;
-  chomp($f);
-  print MC " \\\n \$(INCLUDE_DIR)$f";
-}
-print MC "\n";
-close GREP;
-close MC;
-
-#####################################
 
 print "> src/libchained/config.h\n";
 
@@ -131,33 +109,28 @@ print "> > Generating object list\n";
 open(MF, ">Makefile");
 
 $OBJS = "";
-open(GREP, 'grep -LE "CHAINED: (IGNORE|NORULE)" *.c |');
+open(GREP, 'grep -LE "CHAINED: (IGNORE|NORULE)" */*.c *.c |');
 while (<GREP>)
 {
   $f = $_;
   chomp($f);
-  $f =~ s/\.c$/.o/;
-  $OBJS .= " $f";
+  $f =~ s/\.c$//;
+  $OBJS .= " $f.o";
+  `gcc -export-dynamic -g -fPIC -c -MM -MG -MT $f.o -I. $f.c >> Makefile.t`;
+	`echo "" >> Makefile.t`;
 }
 close GREP;
 
-# HACK: FIXME: This needs to be handled better!
-if ($openssl eq "y") 
-{
-  $OBJS .= " openssl.o";
-}
-
-print MF "INCLUDE_DIR = libchained/
-
-include \$(INCLUDE_DIR)Make_config
+print MF "
+CC = gcc
+CFLAGS = -export-dynamic -g -fPIC -I.
+LIBS = $libs
 OBJS = $OBJS
-
-all:	\$(OBJS)
-	\$(CC) \$(CFLAGS) \$(LIBS) -shared -o libchained.so \$(OBJS)
 
 # ----
 
-\$(OBJS):	\$(INCLUDES)
+all:	\$(OBJS)
+	\$(CC) \$(CFLAGS) \$(LIBS) -shared -o libchained.so \$(OBJS)
 
 # ----
 
@@ -173,29 +146,12 @@ install:
 	mkdir -p /usr/include/libchained/types
 	cp libchained/*.h /usr/include/libchained/
 	cp libchained/types/*.h /usr/include/libchained/types
+
 ";
 
 close MF;
-
-chdir "..";
-#####################################
-
-print "> echo/Makefile\n";
-
-chdir "echo";
-
-open (MF, ">Makefile");
-
-print MF "all: echo
-
-echo: echo.c
-	gcc -lchained -g -fPIC -o echo echo.c
-
-clean:
-	rm echo
-";
-
-close MF;
+`cat Makefile.t >> Makefile`;
+`rm Makefile.t`;
 
 chdir "..";
 

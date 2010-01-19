@@ -3,15 +3,17 @@
  * @brief OpenSSL support
  * Chained in Sanity
  * This module abstracts the stuff that is particular to OpenSSL
- * CHAINED: IGNORE
  */
+
+#include "libchained/chained.h"
+
+
+#ifdef __CIS_HAS_OPENSSL__
 
 /* Some ssl headers */
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <fcntl.h> // O_NONBLOCK F_GETFL F_SETFL
-
-#include "libchained/chained.h"
 
 /*-----------------------------------*/
 #define KEY_PEM "conf/key.pem"
@@ -251,3 +253,5 @@ int cis_openssl_close(connection *stream)
 {
 	return SSL_shutdown(stream->ssl);
 }
+
+#endif
