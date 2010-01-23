@@ -97,6 +97,11 @@ struct connection
 	 * @name IO Functions
 	 */
 	/*@{*/
+        /** This function is responsible for doing anything that needs doing just after connection */
+        void (*connected)(connection *);
+        /** This function is responsible for doing anything that needs to happen if the connection fails */
+        void (*connect_failed)(connection *, int);
+        
 	/** This function calls the function doing the writing */
 	int (*write)(connection *, char *);
 	/** This function calls the function doing the reading 

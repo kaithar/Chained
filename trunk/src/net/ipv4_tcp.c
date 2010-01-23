@@ -152,11 +152,29 @@ static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc)
 	return 0;
 }
 
+void ipv4_tcp_connected (connection *conn)
+{
+    // Params are file descriptor, check for readable?, check for writable?
+    if (conn->sendq->members != 0)
+        socketengine->mod(conn,1,0);
+    else
+        socketengine->mod(conn,1,-1);
+
+    fprintf(stderr,"Connect complete, fd: %d!\n",conn->fd);
+    // conn->onConnect(conn);
+}
+
+void ipv4_tcp_connect_failed(connection *conn, int reason)
+{
+    perror("TCP socket");
+}
+
 /**
  * @todo Make this properly async!
  */
 
-connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_port) {
+connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_port)
+{
 	struct hostent *dns_target = NULL;
 	struct in_addr foo;
 	struct sockaddr_in their_addr; // Target for connection
@@ -188,22 +206,33 @@ connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_p
 		perror("TCP socket");
 		free(conn);
 		return NULL;
-	}  
-
-	if (connect(conn->fd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1) {
-		perror("TCP connect");
-		free(conn);
-		return NULL;
 	}
 
-  // Make it nonblock and add it to the sockengine
+        // Make it nonblock, connect and add it to the sockengine
 	flags = fcntl(conn->fd,F_GETFL, 0);
 	flags |= O_NONBLOCK;
 	fcntl(conn->fd,F_SETFL,flags);
-  // Params are file descriptor, check for readable?, check for writable?
-	socketengine->add(conn,1,0);
 
-	conn->read = &ipv4_tcp_read;
+        conn->connected = &ipv4_tcp_connected;
+        conn->connect_failed = &ipv4_tcp_connect_failed;
+
+	if (connect(conn->fd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1) {
+            switch (errno)
+            {
+                case EINPROGRESS: // This is fine, it means it's going to get back to us...
+                    break;
+
+                default:
+                    perror("TCP connect");
+                    free(conn);
+                    return NULL;
+            }
+	}
+
+        socketengine->add(conn,0,1);
+	fprintf(stderr,"Connect started, fd: %d!\n",conn->fd);
+
+        conn->read = &ipv4_tcp_read;
 	conn->write = &ipv4_tcp_write;
 	conn->close = &ipv4_tcp_close;
   
@@ -216,10 +245,10 @@ connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_p
 	conn->sendq_buf_free = 5000;
 
 	conn->state.can_shutdown = 1;
-	
-	fprintf(stderr,"Connect complete, fd: %d!\n",conn->fd);
-	return conn;
+
+        return conn;
 }
+
 
 int ipv4_tcp_read(connection *cn, int how_much, char *buffer)
 {

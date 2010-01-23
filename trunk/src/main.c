@@ -8,6 +8,8 @@
 
 #include "libchained/chained.h"
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 /* Internal prototypes */
 void cis_init_events();
@@ -124,7 +126,7 @@ void cis_kill_reactor (void)
 
 void cis_run (void)
 {
-	int temp_int = 0;
+	int temp_int = 0, temp_int2 = 0;
 	int i = 0, r, w;
 	int eventcount = 0;
 	connection *read_events[__MAXFDS__];
@@ -146,11 +148,12 @@ void cis_run (void)
 	for(;reactor_running;) {
 		
 		/** Grab some socket events to play with */
-		eventcount = socketengine->wait(read_events, write_events, 250);
+		eventcount = socketengine->wait(read_events, write_events, patience);
 		r = w = 0;
 		
 		/** Run through the existing connections looking for data to read */
-		for(i = 0; (r+w) < eventcount; i++) {
+		for(i = 0; (r+w) < eventcount; i++)
+                {
 			if (read_events[i] != NULL)
 			{
 				r++;
@@ -164,7 +167,25 @@ void cis_run (void)
 			if (write_events[i] != NULL)
 			{
 				w++;
-				conn_send_from_sendq(write_events[i]);
+                                if (write_events[i]->state.connecting == 1)
+                                {
+                                    assert(getsockopt(write_events[i]->fd, SOL_SOCKET, SO_ERROR, &temp_int, &temp_int2) == 0);
+                                    if (temp_int == 0)
+                                    {
+                                        write_events[i]->connected(write_events[i]);
+                                        write_events[i]->state.connecting = 0;
+                                    }
+                                    else
+                                    {
+                                        write_events[i]->connect_failed(write_events[i], temp_int);
+                                        write_events[i]->state.remote_dead = 1;
+                                        write_events[i]->state.local_dead = 1;
+                                        socket_engine->del(write_events[i]);
+                                        cis_reap_connection(write_events[i]);
+                                    }
+                                }
+                                else
+                                    conn_send_from_sendq(write_events[i]);
 			}
 		} // foreach (event)
 		
@@ -251,7 +272,8 @@ void cis_run (void)
 			linklist_iter_del(reaper_iter);
 			fifo_del(global_recvq,temp);
 			/* Make sure it's all closed down... */
-			temp->close(temp);
+                        if (temp->state.local_dead & temp->state.remote_dead == 0)
+                            temp->close(temp);
 			/* Free the important stuff.... */
 			if (temp->name)				free(temp->name);
 			if (temp->recvq)			fifo_free(temp->recvq);

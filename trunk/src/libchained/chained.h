@@ -23,6 +23,7 @@ typedef char bool;
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h> /* helpful ;) */
+#include <assert.h> /* All the better to hit you with a clue by four */
 
 #include "libchained/config.h"
 
