@@ -152,7 +152,7 @@ void cis_run (void)
 		r = w = 0;
 		
 		/** Run through the existing connections looking for data to read */
-		for(i = 0; (r+w) < eventcount; i++)
+		for(i = 0; (r+w) < eventcount; ++i)
                 {
 			if (read_events[i] != NULL)
 			{
