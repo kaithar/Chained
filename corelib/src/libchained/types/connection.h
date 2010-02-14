@@ -64,6 +64,9 @@ struct connection
 		unsigned int listen_read:1;
 		/** Socket engine listening for writable. */
 		unsigned int listen_write:1;
+
+                /** Set this if it's not a newline delimited ascii stream */
+                unsigned int binary:1;
 	} state;
 	
 	/** This is an SSL pointer.  It's typed void to avoid the dependancy */
