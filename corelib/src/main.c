@@ -180,7 +180,7 @@ void cis_run (void)
                                         write_events[i]->connect_failed(write_events[i], temp_int);
                                         write_events[i]->state.remote_dead = 1;
                                         write_events[i]->state.local_dead = 1;
-                                        socket_engine->del(write_events[i]);
+                                        socketengine->del(write_events[i]);
                                         cis_reap_connection(write_events[i]);
                                     }
                                 }

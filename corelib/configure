@@ -135,7 +135,8 @@ all:	\$(OBJS)
 # ----
 
 clean:
-	rm -f *.o *.so
+	rm -f *.so
+	find -name \\\*.o -exec rm -v {} \\;
 
 # ----
 
