@@ -19,6 +19,10 @@ void  *smalloc(int size)
 	return (p);
 }
 
+void sfree(void *mem)
+{
+  free(mem);
+}
 
 /******************************/
 

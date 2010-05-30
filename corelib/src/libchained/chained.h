@@ -36,6 +36,7 @@ typedef char bool;
 #include <libchained/linklist.h>
 #include <libchained/map.h>
 #include <libchained/persistent_map.h>
+#include <libchained/buffer.h>
 
 /*@}*/
 /**

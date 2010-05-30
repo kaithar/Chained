@@ -9,8 +9,8 @@
 #ifndef _INCLUDES_IPV4_H_
 #define _INCLUDES_IPV4_H_
 
-extern connection *ipv4_tcp_listen(char *name, char *ip, int target_port);
-extern connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_port);
+extern connection *ipv4_tcp_listen(char* name, int ip);
+extern connection *ipv4_tcp_connect (char* stream_name, int target_host);
 extern int ipv4_tcp_read(connection *, int how_much, char *buffer);
 extern int ipv4_tcp_write(connection *stream, char *str);
 extern int ipv4_tcp_close(connection *stream);

@@ -8,7 +8,7 @@
  */
 
 #include "libchained/chained.h"
-#include <stdarg.h>		/* va_*() */
+#include <stdarg.h>  /* va_*() */
 
 /**
  * This buffer is used as a temp read in.
@@ -30,122 +30,58 @@ char conn_read_in_temp[10000];
  */
 void conn_read_to_recvq (connection *cn)
 {
-	int readin = 0;
-	
-	int nbytes = 0;
-	int tnbytes = 0;
-	
-	char *next = NULL;
-	char *line = conn_read_in_temp;
-	
-	int foo = 0;
-	
-	readin = cn->recvq_buf_free + cn->recvq_buf_used;
-		
-	while (1)
-	{
-		if (cn->recvq_size > 10000)
-		{
-			/* Um, that's a lot of data ... lets just let that empty a little .... */
-			break;
-		}
+  int nbytes = 0;
 
-		memset(&conn_read_in_temp,0,readin);
-		line = conn_read_in_temp;
-		if (((nbytes = cn->read(cn, readin, conn_read_in_temp)) <= 0) || (cn->state.local_dead == 1))
-		{
-			/* We expect cn->read to handle it's own errors and return 0 when we need to stop reading. */
-			break;
-		}
-		else
-		{
-			tnbytes += nbytes;
-			
-			/**
-			 * Split on \n or \r ...
-			 * 
-			 * lineBreaker returns NULL on no match,
-			 * or makes the newline char a NULL and returns a pointer to the char after the newline 
-			 */
-			while ((next = lineBreaker(line,"\n\r",2)) != NULL)
-			{
-				if (*cn->recvq_buf != 0) // If there is something in the buffer from the last read, bang this line on the end.
-				{
-					strncat(cn->recvq_buf, line, (cn->recvq_buf_free - 1) );
-					line = strdup(cn->recvq_buf);
-					
-					/* Wipe the connection's recvq buffer */
-					memset(cn->recvq_buf, 0, (cn->recvq_buf_free + cn->recvq_buf_used) );
-					cn->recvq_buf_free = readin;
-					cn->recvq_buf_used = 0;
-					
-					fifo_add(cn->recvq,line);
-					cn->recvq_size += strlen(line);
-				}
-				else
-				{
-					if (*line != '\0') 
-					{
-						cn->recvq_size += ((next - line) - 1);
-						line = strdup(line);
-						fifo_add(cn->recvq,line);
-					}
-				}
-				line = next;
-			}
-			strncat(cn->recvq_buf, line, (cn->recvq_buf_free - 1) );
-			foo = strlen(line);
-			cn->recvq_buf_free -= foo;
-			cn->recvq_buf_used += foo;
-			foo = 0;
-		}
-	}
+  char *next = NULL;
+  int foo = 0;
+
+  while (1)
+  {
+    if (cn->recvq->queue_size > 10000)
+    {
+      /* Um, that's a lot of data ... lets just let that empty a little .... */
+      break;
+    }
+
+    if (((nbytes = cn->read(cn)) <= 0) || (cn->state.local_read_shutdown == 1) || (cn->state.remote_closed == 1))
+    {
+      /* We expect cn->read to handle it's own errors and return 0 when we need to stop reading. */
+      break;
+    }
+  }
 }
 
 bool conn_send_from_sendq (connection *cn)
 {
-	char *line;
-	/**
-	 * If there is no sendq, return true in case differenciation is needed.
-	 */
-	
-	if (cn->sendq->members == 0)
-	{
-		/** Better check if it is dead...*/
-		if (cn->state.local_dead == 1)
-			cis_reap_connection(cn);
-		socketengine->mod(cn,0,-1);
-		return 1;
-	}
-	
-	/**
-	 * If the connection is closed, attempt to empty the sendq.
-	 * Dead connections can recv messages though...
-	 */
-	
-	if (cn->state.remote_dead == 1)
-	{
-		discard_sendq(cn);
-		socketengine->mod(cn,0,-1);
-		return 1;
-	}
-	
-	while ((line = fifo_peek( cn->sendq )) != NULL)
-	{
-		if (cn->write(cn,line) == 0)
-			return 0;
-		fifo_pop( cn->sendq );
-		cn->sendq_size -= strlen(line);
-		if (cn->sendq_size < 0)
-			fprintf(stderr,"Um, negative sendq size?\n");
-		free(line);
-	}
-	
-	/** If we have reached this point, the queue is empty...*/
-	if (cn->state.local_dead == 1)
-		cis_reap_connection(cn);
-	socketengine->mod(cn,0,-1);
-	return 1;
+  /**
+  * If there is no sendq, return true in case differenciation is needed.
+  */
+  if (cn->sendq->queue_size == 0)
+  {
+    socketengine->mod(cn,0,-1);
+    return 1;
+  }
+
+  /**
+  * If the connection is closed, attempt to empty the sendq.
+  * Dead connections can recv messages though...
+  */
+
+  if (cn->state.remote_closed == 1)
+  {
+    buffer_empty(cn->sendq);
+    socketengine->mod(cn,0,-1);
+    return 1;
+  }
+
+  if (cn->write(cn) < 0)
+    return 0;
+
+  if (cn->sendq->queue_size == 0)
+  {
+    socketengine->mod(cn,0,-1);
+  }
+  return 1;
 }
 
 /* Yeah, this is a plain and simple wrapper.
@@ -157,27 +93,26 @@ static char sharbuf[10000];
 
 int cprintf(connection *stream, char *fmt, ...)
 {
-	va_list argv;
-	int nbytes = 0;
-	char *temp;
-	
-	va_start(argv, fmt);
-	nbytes = vsnprintf(sharbuf, 9999, fmt, argv);
-	va_end(argv);
-	
-	/* Try and send it... */
-	if ((stream->sendq->members != 0) || (stream->write(stream,sharbuf) == 0))
-	{
-		/* Well that didn't work ... better sendq it... */
-		temp = strdup(sharbuf);
-		fifo_add(stream->sendq,temp);
-		stream->sendq_size += strlen(temp);
-		if (stream->sendq->members == 1)
-		{
-			/* We just added the first line to the sendq ... lets listen for the ability to write */
-			socketengine->mod(stream,0,1);
-		}
-	}
-	
-	return nbytes;
+  va_list argv;
+  int nbytes = 0;
+  char *temp;
+
+  va_start(argv, fmt);
+  nbytes = vsnprintf(sharbuf, 9999, fmt, argv);
+  va_end(argv);
+
+  if (nbytes > 9999)
+  {
+    sharbuf[9999] = '\0';
+    nbytes = 9999;
+  }
+
+  if (nbytes < 0)
+    return nbytes;
+
+  /* Try and send it... */
+  buffer_store(stream->sendq, sharbuf, nbytes);
+  socketengine->mod(stream,0,1);
+
+  return nbytes;
 }

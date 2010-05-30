@@ -6,342 +6,355 @@
 
 #include "libchained/chained.h"
 
-#include <fcntl.h>		/* O_NONBLOCK F_GETFL F_SETFL */
+#include <fcntl.h>    /* O_NONBLOCK F_GETFL F_SETFL */
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/ioctl.h>
 
-connection *ipv4_tcp_listen(char *name, char *target_ip, int target_port);
-static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc);
-connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_port);
-int ipv4_tcp_read(connection *, int how_much, char *buffer);
-int ipv4_tcp_write(connection *stream, char *str);
+connection *ipv4_tcp_listen(char *target_ip, int target_port);
+static int ipv4_tcp_accept(connection *conn);
+connection *ipv4_tcp_connect(char *target_host, int target_port);
+int ipv4_tcp_read(connection *);
+int ipv4_tcp_write(connection *stream);
 int ipv4_tcp_close(connection *stream);
 
 
-connection *ipv4_tcp_listen(char *name, char *target_ip, int target_port)
+connection *ipv4_tcp_listen(char *target_ip, int target_port)
 {
-	char *ip = "0.0.0.0";
-	connection *conn;
-	struct sockaddr_in our_addr;	/* Target for connection */
-	int flags = 0;
-	int opts = 0;
+  char *ip = "0.0.0.0";
+  connection *conn;
 
-	if (target_ip != NULL)
-		ip = target_ip;
+  struct sockaddr_in our_addr;  /* Target for connection */
+  int flags = 0;
+  int opts = 0;
 
-	conn = smalloc(sizeof(connection));
+  if (target_ip != NULL)
+    ip = target_ip;
 
-	our_addr.sin_family = AF_INET;
-	our_addr.sin_port = htons(target_port);	/* Short network byte order */
-	our_addr.sin_addr.s_addr = inet_addr(ip);
-	memset(&(our_addr.sin_zero), '\0', 8);	/* zero the rest */
+  conn = smalloc(sizeof(connection));
 
-	printf("Listen: IPv4: Binding to %s, port %d\n", ip, target_port);
+  our_addr.sin_family = AF_INET;
+  our_addr.sin_port = htons(target_port);     /* Short network byte order */
+  our_addr.sin_addr.s_addr = inet_addr(ip);
+  memset(& (our_addr.sin_zero), '\0', 8);       /* zero the rest */
 
-	if ((conn->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-	{
-		perror("TCP socket");
-		free(conn);
-		return NULL;
-	}
+  printf("Listen: IPv4: Binding to %s, port %d\n", ip, target_port);
 
-	opts = 1;
+  if ((conn->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+  {
+    perror("TCP socket");
+    sfree(conn);
+    return NULL;
+  }
 
-	if (setsockopt(conn->fd, SOL_SOCKET, SO_REUSEADDR, &opts, sizeof(opts)) < 0)
-	{
-		perror("Sockopts");
-		close(conn->fd);
-		free(conn);
-		return NULL;
-	}
+  opts = 1;
 
-	if (bind(conn->fd, (struct sockaddr *)&our_addr, sizeof(struct sockaddr)) == -1)
-	{
-		perror("TCP bind");
-		close(conn->fd);
-		free(conn);
-		return NULL;
-	}
+  if (setsockopt(conn->fd, SOL_SOCKET, SO_REUSEADDR, &opts, sizeof(opts)) < 0)
+  {
+    perror("Sockopts");
+    close(conn->fd);
+    sfree(conn);
+    return NULL;
+  }
 
-	if (listen(conn->fd, 10) == -1)
-	{
-		perror("TCP listen");
-		close(conn->fd);
-		free(conn);
-		return NULL;
-	}
+  if (bind(conn->fd, (struct sockaddr *) &our_addr, sizeof(struct sockaddr)) == -1)
+  {
+    perror("TCP bind");
+    close(conn->fd);
+    sfree(conn);
+    return NULL;
+  }
 
-	/* Make it nonblock and add it to the sockengine */
-	flags = fcntl(conn->fd, F_GETFL, 0);
-	flags |= O_NONBLOCK;
-	fcntl(conn->fd, F_SETFL, flags);
+  if (listen(conn->fd, 10) == -1)
+  {
+    perror("TCP listen");
+    close(conn->fd);
+    sfree(conn);
+    return NULL;
+  }
 
-	/* Params are file descriptor, check for readable?, check for writable? */
-	socketengine->add(conn, 1, 0);
+  /* Make it nonblock and add it to the sockengine */
+  flags = fcntl(conn->fd, F_GETFL, 0);
+  flags |= O_NONBLOCK;
+  fcntl(conn->fd, F_SETFL, flags);
 
-	conn->name = strdup(name);
-	conn->read = &ipv4_tcp_accept;
-	conn->close = &ipv4_tcp_close;
-	
-	conn->recvq = fifo_create(); /** FIXME: Does a listening socket actually need a recvq/sendq? Why? */
-	conn->sendq = fifo_create();
+  /* Params are file descriptor, check for readable?, check for writable? */
+  socketengine->add(conn, 1, 0);
+  conn->read = &ipv4_tcp_accept;
+  conn->close = &ipv4_tcp_close;
 
-	printf("Bind complete, fd: %d!\n", conn->fd);
+  printf("Bind complete, fd: %d!\n", conn->fd);
 
-	return conn;
+  return conn;
 }
 
 /**
  * Because this is a pseudo read abstraction, it must pretend to read data...
  */
 
-static int ipv4_tcp_accept(connection *conn, int dummyi, char *dummyc)
+static int ipv4_tcp_accept(connection *conn)
 {
-	connection *newStream = NULL;
-	int flags = 0;
-	unsigned int addrlen = sizeof(struct sockaddr_in);
-	struct sockaddr_in their_addr;
+  connection *newStream = NULL;
+  int flags = 0;
+  unsigned int addrlen = sizeof(struct sockaddr_in);
 
-	newStream = smalloc(sizeof(connection));
-	memset(&their_addr, 0, sizeof(struct sockaddr_in));
+  struct sockaddr_in their_addr;
 
-	if ((newStream->fd = accept(conn->fd, (struct sockaddr *)&their_addr, &addrlen)) < 0)
-	{
-		perror("TCP Accept");
-		free(newStream);
-		return 0;
-	}
-	
-	sprintf(newStream->source, "%s", inet_ntoa(their_addr.sin_addr));
-	
-	newStream->name = strdup(conn->name);
-	newStream->read = &ipv4_tcp_read;
-	newStream->write = &ipv4_tcp_write;
-	newStream->close = &ipv4_tcp_close;
-  
-	newStream->recvq = fifo_create();
-	newStream->recvq_buf = smalloc(5000);
-	newStream->recvq_buf_free = 5000;
-  
-	newStream->sendq = fifo_create();
-	newStream->sendq_buf = smalloc(5000);
-	newStream->sendq_buf_free = 5000;
+  newStream = smalloc(sizeof(connection));
+  memset(&their_addr, 0, sizeof(struct sockaddr_in));
 
-	newStream->state.can_shutdown = true;
-	
-	/* Make it nonblock and add it to the sockengine */
-	flags = fcntl(newStream->fd, F_GETFL, 0);
-	flags |= O_NONBLOCK;
-	fcntl(newStream->fd, F_SETFL, flags);
-	
-	socketengine->add(newStream, 1, 0);
-	
-	if ((conn->enc_accept) && (conn->enc_accept(newStream) < 0))
-	{
-		printf("Enc_accept failed, closing connection.\n");
-		ipv4_tcp_close(newStream);
-		return -1;
-	}
-	
-	if (conn->callback_accept)
-		conn->callback_accept(conn, newStream);
-	
-	return 0;
+  if ((newStream->fd = accept(conn->fd, (struct sockaddr *) & their_addr, &addrlen)) < 0)
+  {
+    perror("TCP Accept");
+    sfree(newStream);
+    return 0;
+  }
+
+  sprintf(newStream->source, "%s", inet_ntoa(their_addr.sin_addr));
+
+  newStream->read = &ipv4_tcp_read;
+  newStream->write = &ipv4_tcp_write;
+  newStream->close = &ipv4_tcp_close;
+
+  newStream->recvq = new_buffer_queue(1000);
+  newStream->sendq = new_buffer_queue(1000);
+
+  newStream->state.can_shutdown = true;
+
+  /* Make it nonblock and add it to the sockengine */
+  flags = fcntl(newStream->fd, F_GETFL, 0);
+  flags |= O_NONBLOCK;
+  fcntl(newStream->fd, F_SETFL, flags);
+
+  socketengine->add(newStream, 1, 0);
+
+  if (conn->callback_accept)
+    conn->callback_accept(conn, newStream);
+
+  return 0;
 }
 
-void ipv4_tcp_connected (connection *conn)
+void ipv4_tcp_connected(connection *conn)
 {
-    // Params are file descriptor, check for readable?, check for writable?
-    if (conn->sendq->members != 0)
-        socketengine->mod(conn,1,0);
-    else
-        socketengine->mod(conn,1,-1);
+  // Params are file descriptor, check for readable?, check for writable?
+  if (conn->sendq->members != 0)
+    socketengine->mod(conn, 1, 0);
+  else
+    socketengine->mod(conn, 1, -1);
 
-    fprintf(stderr,"Connect complete, fd: %d!\n",conn->fd);
-    // conn->onConnect(conn);
+  fprintf(stderr, "Connect complete, fd: %d!\n", conn->fd);
+
+  conn->callback_connected(conn);
 }
 
 void ipv4_tcp_connect_failed(connection *conn, int reason)
 {
-    perror("TCP socket");
+  perror("TCP socket");
+  conn->callback_connect_failed(conn, reason);
 }
 
 /**
  * @todo Make this properly async!
  */
 
-connection *ipv4_tcp_connect (char *stream_name, char *target_host, int target_port)
+connection *ipv4_tcp_connect(char *target_host, int target_port)
 {
-	struct hostent *dns_target = NULL;
-	struct in_addr foo;
-	struct sockaddr_in their_addr; // Target for connection
-	connection *conn = NULL;
-	int flags = 0;
 
-	conn = smalloc(sizeof(connection));
-  
+  struct hostent *dns_target = NULL;
+
+  struct in_addr foo;
+
+  struct sockaddr_in their_addr; // Target for connection
+  connection *conn = NULL;
+  int flags = 0;
+
+  conn = smalloc(sizeof(connection));
+
   // DNS it ... this is currently liable to cause a lock up
-	dns_target = gethostbyname(target_host);
-  
-	if (dns_target == NULL)
-	{
-		fprintf(stderr,"TCP Client: Failed to connect to %s:%d ... Unknown host\n",target_host,target_port);
-		return NULL;
-	}
+  dns_target = gethostbyname(target_host);
 
-	sprintf(conn->source, "%s", dns_target);
-  
-	their_addr.sin_family = AF_INET;
-	their_addr.sin_port = htons(target_port); // Short network byte order
-	memcpy(&foo,*(dns_target->h_addr_list),sizeof(struct in_addr));
-	memcpy(&their_addr.sin_addr.s_addr,*(dns_target->h_addr_list),sizeof(struct in_addr));
-	memset(&(their_addr.sin_zero), '\0', 8); // zero the rest
-  
-	fprintf(stderr,"TCP Client: Connecting to %s (%s), port %d\n",target_host,inet_ntoa(foo),target_port);
+  if (dns_target == NULL)
+  {
+    fprintf(stderr, "TCP Client: Failed to connect to %s:%d ... Unknown host\n", target_host, target_port);
+    sfree(conn);
+    return NULL;
+  }
 
-	if ((conn->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		perror("TCP socket");
-		free(conn);
-		return NULL;
-	}
+  sprintf(conn->source, "%s", dns_target);
 
-        // Make it nonblock, connect and add it to the sockengine
-	flags = fcntl(conn->fd,F_GETFL, 0);
-	flags |= O_NONBLOCK;
-	fcntl(conn->fd,F_SETFL,flags);
+  their_addr.sin_family = AF_INET;
+  their_addr.sin_port = htons(target_port);    // Short network byte order
+  memcpy(&foo, *(dns_target->h_addr_list), sizeof(struct in_addr));
+  memcpy(&their_addr.sin_addr.s_addr, * (dns_target->h_addr_list), sizeof(struct in_addr));
+  memset(& (their_addr.sin_zero), '\0', 8);      // zero the rest
 
-        conn->connected = &ipv4_tcp_connected;
-        conn->connect_failed = &ipv4_tcp_connect_failed;
+  fprintf(stderr, "TCP Client: Connecting to %s (%s), port %d\n", target_host, inet_ntoa(foo), target_port);
 
-	if (connect(conn->fd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1) {
-            switch (errno)
-            {
-                case EINPROGRESS: // This is fine, it means it's going to get back to us...
-                    break;
+  if ((conn->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+  {
+    perror("TCP socket");
+    sfree(conn);
+    return NULL;
+  }
 
-                default:
-                    perror("TCP connect");
-                    free(conn);
-                    return NULL;
-            }
-	}
+  // Make it nonblock, connect and add it to the sockengine
+  flags = fcntl(conn->fd, F_GETFL, 0);
+  flags |= O_NONBLOCK;
+  fcntl(conn->fd, F_SETFL, flags);
 
-        socketengine->add(conn,0,1);
-	fprintf(stderr,"Connect started, fd: %d!\n",conn->fd);
+  conn->connected = &ipv4_tcp_connected;
 
-        conn->read = &ipv4_tcp_read;
-	conn->write = &ipv4_tcp_write;
-	conn->close = &ipv4_tcp_close;
-  
-	conn->recvq = fifo_create();
-	conn->recvq_buf = smalloc(5000);
-	conn->recvq_buf_free = 5000;
-  
-	conn->sendq = fifo_create();
-	conn->sendq_buf = smalloc(5000);
-	conn->sendq_buf_free = 5000;
+  conn->connect_failed = &ipv4_tcp_connect_failed;
 
-	conn->state.can_shutdown = 1;
+  if (connect(conn->fd, (struct sockaddr *) &their_addr, sizeof(struct sockaddr)) == -1)
+  {
+    switch (errno)
+    {
+      case EINPROGRESS: // This is fine, it means it's going to get back to us...
+        break;
 
-        return conn;
+      default:
+        perror("TCP connect");
+        sfree(conn);
+        return NULL;
+    }
+  }
+
+  socketengine->add(conn, 0, 1);
+
+  fprintf(stderr, "Connect started, fd: %d!\n", conn->fd);
+
+  conn->read = &ipv4_tcp_read;
+  conn->write = &ipv4_tcp_write;
+  conn->close = &ipv4_tcp_close;
+
+  conn->recvq = new_buffer_queue(1000);
+  conn->sendq = new_buffer_queue(1000);
+
+  conn->state.can_shutdown = 1;
+
+  return conn;
 }
 
+/**
+ * This buffer is used as a temp read in.
+ * It's 10k big ... if you try and accept lines bigger than that, I will have to hurt you.
+ */
+char conn_read_in_temp[10000];
 
-int ipv4_tcp_read(connection *cn, int how_much, char *buffer)
+int ipv4_tcp_read(connection *cn)
 {
-	int nbytes = 0;
-	
-	if (cn->state.remote_dead)
-	{
-		*buffer = '\0';
-		return 0;
-	}
-	
-	if ((nbytes = recv(cn->fd, buffer, how_much-1, 0)) <= 0)
-	{
-		if (nbytes == 0)
-		{
-			/* Connection closed remotely, so we can't send anymore */
-			discard_sendq(cn);
-			cn->state.remote_dead = 1;
-			if (cn->recvq->members == 0)
-				cis_reap_connection(cn);
-			return 0;
-		}
-		else if (errno == EAGAIN)
-		{
-			return 0;
-		}
-		perror("recv");
-		cn->syscall_error = nbytes;
-		/* Connection closed remotely, so we can't send anymore */
-		discard_sendq(cn);
-		cn->state.remote_dead = 1;
-		if (cn->recvq->members == 0)
-			cis_reap_connection(cn);
-		return -1;
-	}
+  int nbytes = 0;
 
-	buffer[nbytes] = '\0';
-	return nbytes;
+  if (cn->state.remote_dead)
+    return 0;
+
+  if ((nbytes = recv(cn->fd, conn_read_in_temp, 10000, 0)) <= 0)
+  {
+    if (nbytes == 0)
+    {
+      /* Connection closed remotely, so we can't send anymore */
+      buffer_empty(cn->sendq);
+      buffer_eof(cn->recvq);
+      cn->state.remote_closed = 1;
+      cis_reap_connection(cn);
+      return 0;
+    }
+    else if (errno == EAGAIN)
+    {
+      return 0;
+    }
+
+    perror("recv");
+
+    cn->syscall_error = nbytes;
+    /* Connection closed remotely, so we can't send anymore */
+    buffer_empty(cn->sendq);
+    buffer_eof(cn->recvq);
+    cn->state.remote_closed = 1;
+    cis_reap_connection(cn);
+    return -1;
+  }
+
+  buffer_store(cn->recvq, conn_read_in_temp, nbytes);
+  return nbytes;
 }
 
-int ipv4_tcp_write(connection *stream, char *str)
+int ipv4_tcp_write(connection *stream)
 {
-	int nbytes = 0;
-	
-	if (stream->state.remote_dead)
-		return strlen(str);
-	
-	if ((nbytes = send(stream->fd, str, strlen(str), 0)) <= 0)
-	{
-		if (errno = EAGAIN)
-		{
-			return 0;
-		}
-		perror("send");
-		stream->syscall_error = nbytes;
-		/* Connection closed remotely, so we can't send anymore */
-		discard_sendq(stream);
-		stream->state.remote_dead = 1;
-		if (stream->recvq->members == 0)
-			cis_reap_connection(stream);
-		return -1;
-	}
-	
-	return nbytes;
+  /** Bytes sent() */
+  int nbytes = 0;
+  /** Bytes to send */
+  int sendbytes = 0;
+
+  if (stream->state.remote_closed)
+    return 0;
+
+  sendbytes = buffer_pop_by_size(stream->sendq, conn_read_in_temp, 5000);
+
+  if (sendbytes == 0)
+    return 0;
+
+  if (((nbytes = send(stream->fd, conn_read_in_temp, sendbytes, 0)) <= 0) || (nbytes != sendbytes))
+  {
+    if ((errno == EAGAIN)||(errno == EWOULDBLOCK))
+      return 0;
+
+    perror("send");
+
+    stream->syscall_error = nbytes;
+    /* Connection closed remotely, so we can't send anymore */
+    buffer_empty(stream->sendq);
+    buffer_eof(stream->recvq);
+    stream->state.remote_closed = 1;
+    cis_reap_connection(stream);
+
+    return -1;
+  }
+
+  return nbytes;
 }
 
 int ipv4_tcp_close(connection *stream)
 {
-	/** This has either been called by the reaper to clean up, or the client to close down... which? */
-	if ((stream->state.remote_dead == 0) && (stream->state.local_dead == 0))
-	{
-		/** If the remote and local aren't dead, we assume a local close is desired */
-		discard_recvq(stream);
-		stream->state.local_dead = 1;
-		if (stream->callback_close)
-			stream->callback_close(stream);
-		if (stream->state.can_shutdown == 1)
-			shutdown(stream->fd,SHUT_RD);
-		if (stream->sendq->members == 0)
-			cis_reap_connection(stream);
-		socketengine->mod(stream,0,-1);
-	}
-	else
-	{
-		/** If one of them -is- dead, we assume this is the reaper cleaning up, and attempt to shutdown in a clean fashion. */
-		/* If state.local_dead is 0, we assume no callback has been fired */
-		if ((stream->state.local_dead == 0) && (stream->callback_close))
-			stream->callback_close(stream);
-		/* If state.remote_dead is 0, we assume the connection is still alive to receive a shutdown */
-		if ((stream->state.remote_dead == 0) && (stream->enc_close))
-			stream->enc_close(stream);		stream->state.remote_dead = 1;
-		socketengine->del(stream);
-		close(stream->fd);
-	}
-	return 0;
+  /** This has either been called by the reaper to clean up, or the client to close down... which? */
+  if ((stream->state.remote_dead == 0) &&
+      ((stream->state.local_read_shutdown == 0) ||
+      (stream->state.local_write_shutdown == 0)))
+  {
+    /** If the remote and local aren't dead, we assume a local close is desired */
+    buffer_empty(stream->recvq);
+    stream->state.local_read_shutdown = 1;
+    stream->state.local_write_shutdown = 1;
+
+    if (stream->callback_close)
+      stream->callback_close(stream);
+
+    if (stream->state.can_shutdown == 1)
+      shutdown(stream->fd, SHUT_RD);
+
+    cis_reap_connection(stream);
+
+    socketengine->mod(stream, -1, 0);
+  }
+  else
+  {
+    /** If one of them -is- dead, we assume this is the reaper cleaning up, and attempt to shutdown in a clean fashion. */
+    /* If state.local_dead is 0, we assume no callback has been fired */
+    if (((stream->state.local_read_shutdown == 0) ||
+        (stream->state.local_write_shutdown == 0)) &&
+        (stream->callback_close))
+      stream->callback_close(stream);
+
+    stream->state.remote_closed = 1;
+
+    socketengine->del(stream);
+
+    close(stream->fd);
+  }
+
+  return 0;
 }
