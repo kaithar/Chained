@@ -7,9 +7,10 @@
  */
 
 #include <includes/chained.h>
+#include <signal.h>
 
 /* Internal prototypes */
-//void cis_init_events();
+void cis_init_events();
 //void cis_init_modules();
 
 
@@ -29,7 +30,7 @@ void cis_init (void)
 	srand(time(0));
 	memset(connections,0,sizeof(connections));
 	
-	//cis_init_events();
+	cis_init_events();
 	//cis_init_modules();
 	
 	cis_init_reaper();
@@ -49,6 +50,19 @@ void cis_kill_reactor (void)
 	reactor_running = false;
 }
 
+/**
+ * @brief Signal intercepter!
+ * We need to intercept the SIGINT so we can break out of the reactor.  This should do the trick so long as some pest doesn't try and rebind it.
+ */
+
+__sighandler_t old_sigint;
+void int_handler(int i)
+{
+	cis_kill_reactor();
+	old_sigint(i);
+}
+
+
 
 /**
  * @brief I make the magic happen... I am the main loop!
@@ -63,18 +77,19 @@ void cis_kill_reactor (void)
 
 void cis_run (void)
 {
-	r_config.patience = 250;
-	r_config.global_recvq = fifo_create();
+    old_sigint = signal(SIGINT, int_handler);
+    r_config.patience = 250;
+    r_config.global_recvq = fifo_create();
 
-  /* main loop */
-  for(reactor_running = true; reactor_running;)
-  {
-		cis_se_process();
-		cis_readq_process();
-		cis_reaper_process();
-    //cis_timers_process();
-  }
-  return;
+    /* main loop */
+    for(reactor_running = true; reactor_running;)
+    {
+        cis_se_process();
+        cis_readq_process();
+        cis_reaper_process();
+        cis_timers_process();
+    }
+    return;
 }
 
 

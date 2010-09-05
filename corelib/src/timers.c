@@ -20,7 +20,7 @@ static timer_event *firstevent = 0;
 static timer_event *lastevent = 0;
 static int eventcount = 0;
 
-int timers_add(timer_event *ev)
+int cis_timers_add(timer_event *ev)
 {
 	timer_event *curr;
 	int inserted = 0;
@@ -74,7 +74,7 @@ int timers_add(timer_event *ev)
 	return 1;
 }
 
-int timers_del(timer_event *ev)
+int cis_timers_del(timer_event *ev)
 {
 	if (ev->next)
 	{
@@ -99,7 +99,7 @@ int timers_del(timer_event *ev)
 	return 1;
 }
 
-int timers_process()
+int cis_timers_process()
 {
 	timer_event *curr;
 	timer_event *temp;
@@ -129,7 +129,7 @@ int timers_process()
 					/* last rep, remove it please */
 					temp = curr;
 					curr = curr->next;
-					timers_del(temp);
+					cis_timers_del(temp);
 					free(temp);
 				}
 				else
@@ -144,8 +144,8 @@ int timers_process()
 					}
 					
 					temp->when += temp->delay;
-					timers_del(temp);
-					timers_add(temp);
+					cis_timers_del(temp);
+					cis_timers_add(temp);
 				}	/* else for if (reps == 1) */
 				/* Now at this point in time, curr should have moved on to the next one */
 			}

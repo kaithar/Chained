@@ -45,7 +45,7 @@ typedef char bool;
 /*@{*/
 
 #include <includes/types/connection.h>
-// #include <includes/types/timers.h>
+#include <includes/types/timers.h>
 #include <includes/types/socket_engine.h>
 // #include <includes/types/config_reading.h>
 // #include <includes/types/modules.h>
@@ -64,10 +64,10 @@ typedef char bool;
 #include <includes/socketengines.h>
 #include <includes/tcp.h>
 // #include <includes/config_reading.h>
-// #include <includes/events.h>
+#include <includes/events.h>
 // #include <includes/modules.h>
 // #include <includes/ssl.h>
-// #include <includes/timers.h>
+#include <includes/timers.h>
 
 #include <includes/externs.h>
 
