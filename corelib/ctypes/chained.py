@@ -9,6 +9,15 @@ chained = cdll.LoadLibrary("libchained.so")
 class connection(Structure):
 	pass
 
+class hook(Structure):
+	pass
+
+class event(Structure):
+	pass
+
+class timer_event(Structure):
+	pass
+
 #
 # Function pointer structures
 #
@@ -23,6 +32,10 @@ ic = CFUNCTYPE(c_int, POINTER(connection))
 ici = CFUNCTYPE(c_int, POINTER(connection), c_int)
 # int (*) (connection *, connection *);
 icc = CFUNCTYPE(c_int, POINTER(connection), POINTER(connection))
+#	int (*)(int version, int parc, void **parv);
+iiiv = CFUNCTYPE(c_int, c_int, c_int, POINTER(c_void_p))
+# int (*)(timer_event *, void *)
+itv = CFUNCTYPE(c_int, POINTER(timer_event), c_void_p)
 
 #
 # Strutures!
@@ -69,3 +82,23 @@ connection._fields_ = [
 		("callback_close", ic) # int (*callback_close)(connection *);
 	]
 
+hook._fields_ = [
+		("event", c_ubyte * 101), # unsigned char event[101];
+		("callback", iiiv) # int (*callback)(int version, int parc, void **parv);
+]
+
+event._fields_ = [
+		("event", c_ubyte * 101), # unsigned char event[101];
+		("references", c_uint), # unsigned int references;
+		("hooks", c_void_p) # linklist_root *hooks; // we're casting void here since we really don't care about interacting with that directly.
+]
+
+timer_event._fields_ = [
+		("prev", POINTER(timer_event)), #timer_event *prev, *next; /**< Prev/Next event */
+		("next", POINTER(timer_event)),
+		("when", c_uint), # unsigned int when;                     /**< When does this timer trigger? */
+		("delay", c_int), # int delay;                             /**< Delay before retriggering */
+	  ("repetitions", c_int), # int repetitions;                 /**< How many times to do this event */
+		("callback_param", c_void_p), # void *callback_param;      /**< param for callback */
+	  ("callback", itv) # int (*callback)(timer_event *, void*); /**< the callback for this event, void* is some sort of value meaningful to the callback */
+]
