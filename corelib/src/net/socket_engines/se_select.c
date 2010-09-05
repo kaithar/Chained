@@ -1,11 +1,11 @@
 // Chained In Sanity
 // select socket engineeeee
 
-#include "libchained/chained.h"
+#include "includes/chained.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+//#include <stdlib.h>
+//#include <string.h>
+//#include <unistd.h>
 
 #include <sys/select.h>
 
@@ -17,14 +17,14 @@ static int se_s_wait(connection *read_events[], connection *write_events[], int 
 static fd_set rfds, wfds;
 static fd_set temp_rfds, temp_wfds;
 
-void cis_load_selectengine (void)
+void cis_se_load_select (void)
 {
 	// Select module init
-	socketengine = smalloc(sizeof(socket_engine));
-	socketengine->add = &se_s_add;
-	socketengine->mod = &se_s_mod;
-	socketengine->del = &se_s_del;
-	socketengine->wait = &se_s_wait;
+	r_config.socketengine = smalloc(sizeof(socket_engine));
+	r_config.socketengine->add = &se_s_add;
+	r_config.socketengine->mod = &se_s_mod;
+	r_config.socketengine->del = &se_s_del;
+	r_config.socketengine->wait = &se_s_wait;
 	FD_ZERO(&rfds);
 	FD_ZERO(&wfds);
 	return;
@@ -40,20 +40,20 @@ static int se_s_add(connection *cn, int addread, int addwrite)
 		FD_SET(cn->fd, &wfds);
 		cn->state.listen_write = 1;
 	}
-	socketengine->cns[cn->fd] = cn;
-	socketengine->fdcount++;
+	r_config.socketengine->cns[cn->fd] = cn;
+	r_config.socketengine->fdcount++;
 	return 0;
 }
 
 static int se_s_mod(connection *cn, int mod_read, int mod_write)
 {
 	if (
-			 (socketengine->cns[cn->fd] == NULL) && 
+			 (r_config.socketengine->cns[cn->fd] == NULL) &&
 			 ((mod_read > 0) || (mod_write > 0))
 		 )
 	{
-		socketengine->cns[cn->fd] = cn;
-		socketengine->fdcount++;
+		r_config.socketengine->cns[cn->fd] = cn;
+		r_config.socketengine->fdcount++;
 	}
 	if ((mod_read < 0)&&(cn->state.listen_read == 1))
 	{
@@ -78,8 +78,8 @@ static int se_s_mod(connection *cn, int mod_read, int mod_write)
 	}
 	if ((cn->state.listen_read == 0) && (cn->state.listen_write == 0))
 	{
-		socketengine->cns[cn->fd] = NULL;
-		socketengine->fdcount--;
+		r_config.socketengine->cns[cn->fd] = NULL;
+		r_config.socketengine->fdcount--;
 	}
 	return 0;
 }
@@ -90,8 +90,8 @@ static int se_s_del(connection *cn)
 	FD_CLR(cn->fd, &wfds);
 	cn->state.listen_read = 0;
 	cn->state.listen_write = 0;
-	socketengine->cns[cn->fd] = NULL;
-	socketengine->fdcount--;
+	r_config.socketengine->cns[cn->fd] = NULL;
+	r_config.socketengine->fdcount--;
 	return 0;
 }
 
@@ -120,9 +120,9 @@ static int se_s_wait(connection *read_events[], connection *write_events[], int 
 		for (i = 0; i < __MAXFDS__; i++)
 		{
 			if (FD_ISSET(i,&temp_rfds))
-				read_events[r++] = socketengine->cns[i];
+				read_events[r++] = r_config.socketengine->cns[i];
 			if (FD_ISSET(i,&temp_wfds))
-				write_events[w++] = socketengine->cns[i];
+				write_events[w++] = r_config.socketengine->cns[i];
 			if (r+w == eventcount)
 				break;
 		}

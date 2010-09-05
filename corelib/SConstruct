@@ -1,0 +1,62 @@
+import sys
+import os
+
+env = Environment(
+	CCFLAGS='-ggdb -export-dynamic',
+	CPPPATH='./',
+	ENV = {'PATH' : os.environ['PATH'],
+				 'TERM' : os.environ['TERM'],
+				 'HOME' : os.environ['HOME']}
+)
+
+openssl = False
+
+if not env.GetOption('clean'):
+	conf = Configure(env)
+
+	libs = ['lm', 'lc', 'ldl']
+
+	if not conf.CheckLibWithHeader('m', 'math.h', 'c'):
+		print 'Missing libm'
+		Exit(1)
+
+	if not conf.CheckLibWithHeader('dl', 'dlfcn.h', 'c'):
+		print 'Missing libdl'
+		Exit(1)
+
+	if conf.CheckCHeader('/usr/include/openssl/opensslv.h'):
+		print 'Found openssl'
+		libs.append('lssl')
+		openssl = True
+
+	env = conf.Finish()
+
+Export('env')
+
+# From http://www.scons.org/wiki/InstallTargets
+import SCons
+
+# define the custom function
+from SCons.Script.SConscript import SConsEnvironment
+SConsEnvironment.Chmod = SCons.Action.ActionFactory(os.chmod,
+        lambda dest, mode: 'Chmod("%s", 0%o)' % (dest, mode))
+
+def InstallPerm(env, dest, files, perm):
+    obj = env.Install(dest, files)
+    for i in obj:
+        env.AddPostAction(i, env.Chmod(str(i), perm))
+    return dest
+
+# put this function "in" scons
+SConsEnvironment.InstallPerm = InstallPerm
+
+try:
+    umask = os.umask(022)
+    print 'setting umask to 022 (was 0%o)' % umask
+except OSError:     # ignore on systems that don't support umask
+    pass
+
+# </from>
+
+SConscript('src/SConscript', variant_dir='build', duplicate=0)
+

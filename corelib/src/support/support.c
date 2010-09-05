@@ -1,7 +1,7 @@
 
-#include "libchained/chained.h"
+#include "includes/chained.h"
 
-void  *smalloc(int size)
+void *smalloc(size_t size)
 {
 	void *p;
 
@@ -42,22 +42,4 @@ int cis_do_blocking_exec (unsigned char *file, unsigned char *buffer, unsigned i
   buffer[pnbytes] = '\0';
   pclose(f);
   return pnbytes;
-}
-
-/******************************/
-
-void discard_sendq (connection *conn)
-{
-	char *temp = NULL;
-	while (temp = fifo_pop(conn->sendq))
-		free(temp);
-	conn->sendq_size = 0;
-}
-
-void discard_recvq (connection *conn)
-{
-	char *temp = NULL;
-	while (fifo_pop(conn->recvq))
-		free(temp);
-	conn->recvq_size = 0;
 }

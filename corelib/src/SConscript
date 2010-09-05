@@ -1,0 +1,13 @@
+Import('*')
+
+objects = []
+
+objects += env.SharedObject(Glob('*.c'))
+objects += env.SharedObject(Glob('data-structures/*.c'))
+objects += env.SharedObject(Glob('net/*.c'))
+objects += env.SharedObject(Glob('net/socket_engines/*.c'))
+objects += env.SharedObject(Glob('reactor/*.c'))
+objects += env.SharedObject(Glob('support/*.c'))
+
+env.SharedLibrary('chained', objects)
+

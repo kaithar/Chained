@@ -7,7 +7,7 @@
  */
 
 
-#include "libchained/chained.h"
+#include "includes/chained.h"
 
 #define MAP_STATE_SETUP 0
 #define MAP_STATE_NORMAL 1
@@ -148,7 +148,7 @@ map_root *map_create_init_from_preset(const int preset[257])
 	return temp;
 }
 
-#include "libchained/map_presets.h"
+#include "includes/map_presets.h"
 
 /*
  * Finalise the struct (called init for purposes of avoiding z/s complaints)

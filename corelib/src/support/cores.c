@@ -1,14 +1,11 @@
 
-#include "libchained/chained.h"
+#include "includes/chained.h"
 #include <sys/resource.h> /* For rlimit stuff */
 
 /**
  * @brief I try to make sure we're dropping cores...
  * This function attempts to make sure we drop cores.
  * Should it fail, it will generate an error to the stderr.
- * @todo
- * Ideally, we need some way of making error here fatal.
- * That way we can get the program to halt if it won't be able to drop cores.
  * @note
  * Thankie w00t for pointing this out :)
  */

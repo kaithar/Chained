@@ -4,7 +4,7 @@
  * FIFO management.
  */
 
-#include "libchained/chained.h"
+#include "includes/chained.h"
 
 /*
  * First function is create, very simplistic really
@@ -231,12 +231,12 @@ void fifo_print(fifo_root *p)
 	fifo_link *temp = p->first;
   printf("L: ");
 	for (;temp;temp = temp->next)
-		printf("%d > ",temp);
+		printf("%p > ",temp);
 	printf("\nD: ");
 
 	temp = p->first;
 	for (;temp;temp = temp->next)
-		printf("%d > ",temp->data);
+		printf("%p > ",temp->data);
 	printf("\n");
 }
 
