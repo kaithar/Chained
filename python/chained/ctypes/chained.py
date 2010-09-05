@@ -1,6 +1,6 @@
 from ctypes import *
 
-chained = cdll.LoadLibrary("libchained.so")
+so_chained = cdll.LoadLibrary("libchained.so")
 
 #
 # Forward Declarations
@@ -66,13 +66,14 @@ Connection._fields_ = [
 		("state", State_bitfield),
 		("recvq", c_void_p), # Actually a buffer_queue, but that's irrelevant here.
 		("sendq", c_void_p), # Ditto
-		# Function pointers that we may be interested in.
+		# Underlying api callbacks
 		("connected", vc), # void (*connected)(connection *);
 		("connect_failed", vci), # void (*connect_failed)(connection *, int);
 		("write", ic), # int (*write)(connection *);
 		("read", ic), # int (*read)(connection *);
 		("shutdown", ici), # int (*shutdown)(connection *, int);
 		("close", ic), # int (*close)(connection *);
+		# Application layer callbacks
 		("callback_connected", vc), # void (*callback_connected)(connection *);
 		("callback_connect_failed", vci), # void (*callback_connect_failed)(connection *, int);
 		("callback_read", ic), # int (*callback_read) (connection *);
