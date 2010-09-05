@@ -6,16 +6,16 @@ chained = cdll.LoadLibrary("libchained.so")
 # Forward Declarations
 #
 
-class connection(Structure):
+class Connection(Structure):
 	pass
 
-class hook(Structure):
+class Hook(Structure):
 	pass
 
-class event(Structure):
+class Event(Structure):
 	pass
 
-class timer_event(Structure):
+class Timer_event(Structure):
 	pass
 
 #
@@ -23,25 +23,25 @@ class timer_event(Structure):
 #
 
 # void (*)(connection *);
-vc = CFUNCTYPE(None, POINTER(connection))
+vc = CFUNCTYPE(None, POINTER(Connection))
 # void (*)(connection *, int);
-vci = CFUNCTYPE(None, POINTER(connection), c_int)
+vci = CFUNCTYPE(None, POINTER(Connection), c_int)
 # int (*)(connection *);
-ic = CFUNCTYPE(c_int, POINTER(connection))
+ic = CFUNCTYPE(c_int, POINTER(Connection))
 # int (*)(connection *, int);
-ici = CFUNCTYPE(c_int, POINTER(connection), c_int)
+ici = CFUNCTYPE(c_int, POINTER(Connection), c_int)
 # int (*) (connection *, connection *);
-icc = CFUNCTYPE(c_int, POINTER(connection), POINTER(connection))
+icc = CFUNCTYPE(c_int, POINTER(Connection), POINTER(Connection))
 #	int (*)(int version, int parc, void **parv);
 iiiv = CFUNCTYPE(c_int, c_int, c_int, POINTER(c_void_p))
 # int (*)(timer_event *, void *)
-itv = CFUNCTYPE(c_int, POINTER(timer_event), c_void_p)
+itv = CFUNCTYPE(c_int, POINTER(Timer_event), c_void_p)
 
 #
 # Strutures!
 #
 
-class state_bitfield(Structure):
+class State_bitfield(Structure):
 	_fields_ = [
 		("connecting", c_int, 1),
 		("reaping", c_int, 1),
@@ -53,7 +53,7 @@ class state_bitfield(Structure):
 		("listen_write", c_int, 1)
 	]
 
-connection._fields_ = [
+Connection._fields_ = [
 		("fd", c_int),
 		("ssl", c_void_p),
 		("file", c_void_p),
@@ -61,9 +61,9 @@ connection._fields_ = [
 		("data", c_void_p),
 		("conn_mark", c_int),
 		("syscall_error", c_int),
-		("encapsulates", POINTER(connection)),
-		("encapsulated_by", POINTER(connection)),
-		("state", state_bitfield),
+		("encapsulates", POINTER(Connection)),
+		("encapsulated_by", POINTER(Connection)),
+		("state", State_bitfield),
 		("recvq", c_void_p), # Actually a buffer_queue, but that's irrelevant here.
 		("sendq", c_void_p), # Ditto
 		# Function pointers that we may be interested in.
@@ -82,20 +82,20 @@ connection._fields_ = [
 		("callback_close", ic) # int (*callback_close)(connection *);
 	]
 
-hook._fields_ = [
+Hook._fields_ = [
 		("event", c_ubyte * 101), # unsigned char event[101];
 		("callback", iiiv) # int (*callback)(int version, int parc, void **parv);
 ]
 
-event._fields_ = [
+Event._fields_ = [
 		("event", c_ubyte * 101), # unsigned char event[101];
 		("references", c_uint), # unsigned int references;
 		("hooks", c_void_p) # linklist_root *hooks; // we're casting void here since we really don't care about interacting with that directly.
 ]
 
-timer_event._fields_ = [
-		("prev", POINTER(timer_event)), #timer_event *prev, *next; /**< Prev/Next event */
-		("next", POINTER(timer_event)),
+Timer_event._fields_ = [
+		("prev", POINTER(Timer_event)), #timer_event *prev, *next; /**< Prev/Next event */
+		("next", POINTER(Timer_event)),
 		("when", c_uint), # unsigned int when;                     /**< When does this timer trigger? */
 		("delay", c_int), # int delay;                             /**< Delay before retriggering */
 	  ("repetitions", c_int), # int repetitions;                 /**< How many times to do this event */
