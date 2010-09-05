@@ -4,6 +4,19 @@ class Connection (object):
 	ctype = None
 	protocol = None
 
+	def __init__(self, conn = None, protocol = None):
+		if conn:
+			self.ctype = conn
+			conn.contents.callback_connected = chained.vc(self.callback_connected)
+			conn.contents.callback_connect_failed = chained.vci(self.callback_connect_failed)
+			conn.contents.callback_read = chained.ic(self.callback_read)
+			conn.contents.callback_accept = chained.icc(self.callback_accept)
+			conn.contents.callback_remote_lost = chained.ic(self.callback_remote_lost)
+			conn.contents.callback_shutdown = chained.ic(self.callback_shutdown)
+			conn.contents.callback_close = chained.ic(self.callback_close)
+		if protocol:
+			self.protocol = protocol
+
 	def callback_connected(self, c):
 		if self.protocol:
 			return self.protocol.onConnectionMade()

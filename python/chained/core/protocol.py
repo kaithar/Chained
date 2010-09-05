@@ -1,5 +1,5 @@
 
-def Protocol (Object):
+class Protocol (object):
 
 	def onConnectionMade(self):
 		return 0

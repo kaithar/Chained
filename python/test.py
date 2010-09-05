@@ -1,17 +1,16 @@
-from chained import *
-chained.cis_init()
-chained.cis_se_load_select()
-chained.cis_tcp_listen.restype = POINTER(connection)
-chained.cis_tcp_listen.argtypes = [c_char_p, c_int]
-c = chained.cis_tcp_listen("0.0.0.0", 12345)
+from chained.ctypes.chained import so_chained
+from chained.core import port, protocol
 
-cb_accept = CFUNCTYPE(c_int, POINTER(connection), POINTER(connection))
+so_chained.cis_init()
+so_chained.cis_se_load_select()
 
-def callback_accept(on, newcn):
-	print on, newcn
-	return 1
+class foo (protocol.Protocol):
+	def onDataAvailable(self):
+		self.connection.write("Rawr!")
+		return 0
 
-cb = cb_accept(callback_accept)
-c.contents.callback_accept = cb
-chained.cis_run()
+p = port.Port(port=12345)
+p.protocol = foo
+
+so_chained.cis_run()
 
