@@ -18,6 +18,12 @@ class Event(Structure):
 class Timer_event(Structure):
 	pass
 
+class Buffer_packet(Structure):
+	pass
+
+class Buffer_queue(Structure):
+	pass
+
 #
 # Function pointer structures
 #
@@ -64,8 +70,8 @@ Connection._fields_ = [
 		("encapsulates", POINTER(Connection)),
 		("encapsulated_by", POINTER(Connection)),
 		("state", State_bitfield),
-		("recvq", c_void_p), # Actually a buffer_queue, but that's irrelevant here.
-		("sendq", c_void_p), # Ditto
+		("recvq", POINTER(Buffer_queue)),
+		("sendq", POINTER(Buffer_queue)),
 		# Underlying api callbacks
 		("connected", vc), # void (*connected)(connection *);
 		("connect_failed", vci), # void (*connect_failed)(connection *, int);
@@ -103,3 +109,51 @@ Timer_event._fields_ = [
 		("callback_param", c_void_p), # void *callback_param;      /**< param for callback */
 	  ("callback", itv) # int (*callback)(timer_event *, void*); /**< the callback for this event, void* is some sort of value meaningful to the callback */
 ]
+
+Buffer_packet._fields_ = [
+	("content", c_char_p), # char *content;
+	("start", c_uint), # unsigned int start;
+	("length", c_uint), # unsigned int length;
+	("eof", c_ubyte) # bool eof;
+]
+
+Buffer_queue._fields_ = [
+	#/** This is a fifo of messages received from this connection but not processed yet. */
+  ("queue", c_void_p), # fifo_root *queue;
+  #/** This is how much data we're storing on this recvq fifo */
+  ("queue_size", c_uint), # unsigned int queue_size;
+  #/** Block size, the amount of memory in each block */
+  ("block_size", c_uint) # unsigned int block_size;
+]
+
+# Function type fixes.
+
+so_chained.cis_tcp_listen.restype = POINTER(Connection)
+so_chained.cis_tcp_listen.argtypes = [c_char_p, c_int]
+
+# Buffer.h
+
+so_chained.new_buffer_queue.restype = POINTER(Buffer_queue)
+so_chained.new_buffer_queue.argtypes = [c_uint]
+
+so_chained.buffer_store.restype = None
+so_chained.buffer_store.argtypes = [POINTER(Buffer_queue), c_char_p, c_uint]
+
+so_chained.buffer_eof.restype = None
+so_chained.buffer_eof.argtypes = [POINTER(Buffer_queue)]
+
+so_chained.buffer_pop_by_size.restype = c_int
+so_chained.buffer_pop_by_size.argtypes = [POINTER(Buffer_queue), c_char_p, c_uint]
+
+so_chained.buffer_pop_to_delim.restype = c_int
+so_chained.buffer_pop_to_delim.argtypes = [POINTER(Buffer_queue), c_char_p, c_uint, c_char]
+
+so_chained.buffer_peek.restype = c_char
+so_chained.buffer_peek.argtypes = [POINTER(Buffer_queue)]
+
+so_chained.buffer_empty.restype = c_int
+so_chained.buffer_empty.argtypes = [POINTER(Buffer_queue)]
+
+so_chained.buffer_free.restype = None
+so_chained.buffer_free.argtypes = [POINTER(Buffer_queue)]
+
