@@ -147,7 +147,8 @@ void cis_tcp_connected(connection *conn)
 
   fprintf(stderr, "Connect complete, fd: %d!\n", conn->fd);
 
-  conn->callback_connected(conn);
+	if (conn->callback_connected != NULL)
+	  conn->callback_connected(conn);
 }
 
 void cis_tcp_connect_failed(connection *conn, int reason)
@@ -162,69 +163,64 @@ void cis_tcp_connect_failed(connection *conn, int reason)
 
 connection *cis_tcp_connect(char *target_host, int target_port)
 {
+	struct addrinfo hints;
+	struct addrinfo *result, *rp;
+	struct sockaddr_in * a;
+	int s;
 
-  struct hostent *dns_target = NULL;
-
-  struct in_addr foo;
-
-  struct sockaddr_in their_addr; // Target for connection
-  connection *conn = NULL;
+ 	connection *conn = NULL;
   int flags = 0;
 
   conn = smalloc(sizeof(connection));
 
   // DNS it ... this is currently liable to cause a lock up
-  dns_target = gethostbyname(target_host);
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+	hints.ai_socktype = SOCK_STREAM; /* Datagram socket */
 
-  if (dns_target == NULL)
-  {
-    fprintf(stderr, "TCP Client: Failed to connect to %s:%d ... Unknown host\n", target_host, target_port);
-    sfree(conn);
-    return NULL;
-  }
-
-  sprintf(conn->source, "%s", dns_target->h_addr_list[0]);
-
-  their_addr.sin_family = AF_INET;
-  their_addr.sin_port = htons(target_port);    // Short network byte order
-  memcpy(&foo, *(dns_target->h_addr_list), sizeof(struct in_addr));
-  memcpy(&their_addr.sin_addr.s_addr, * (dns_target->h_addr_list), sizeof(struct in_addr));
-  memset(& (their_addr.sin_zero), '\0', 8);      // zero the rest
-
-	free(dns_target);
-
-  fprintf(stderr, "TCP Client: Connecting to %s (%s), port %d\n", target_host, inet_ntoa(foo), target_port);
-
-  if ((conn->fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-  {
-    perror("TCP socket");
-    sfree(conn);
-    return NULL;
-  }
-
-  // Make it nonblock, connect and add it to the sockengine
-  flags = fcntl(conn->fd, F_GETFL, 0);
-  flags |= O_NONBLOCK;
-  fcntl(conn->fd, F_SETFL, flags);
+	s = getaddrinfo(target_host, NULL, &hints, &result);
+	if (s != 0)
+	{
+		fprintf(stderr, "TCP Client: getaddrinfo: %s\n", gai_strerror(s));
+		sfree(conn);
+		return NULL;
+	}
 
   conn->connected = &cis_tcp_connected;
-
   conn->connect_failed = &cis_tcp_connect_failed;
 
-  if (connect(conn->fd, (struct sockaddr *) &their_addr, sizeof(struct sockaddr)) == -1)
-  {
-    switch (errno)
-    {
-      case EINPROGRESS: // This is fine, it means it's going to get back to us...
-        break;
+	for (rp = result; rp != NULL; rp = rp->ai_next)
+	{
+		a = (struct sockaddr_in*) rp->ai_addr;
+		inet_ntop(AF_INET, &a->sin_addr, conn->source, INET_ADDRSTRLEN);
+		fprintf(stderr, "TCP Client: Connecting to %s (%s), port %d\n", target_host, conn->source, target_port);
+		a->sin_port = htons(target_port);
+		conn->fd = socket(rp->ai_family, rp->ai_socktype,
+								rp->ai_protocol);
+		if (conn->fd == -1)
+			continue;
 
-      default:
-        perror("TCP connect");
-        sfree(conn);
-        return NULL;
-    }
-  }
+		// Make it nonblock and try connect
+		flags = fcntl(conn->fd, F_GETFL, 0);
+		flags |= O_NONBLOCK;
+		fcntl(conn->fd, F_SETFL, flags);
 
+		if (connect(conn->fd, rp->ai_addr, rp->ai_addrlen) == -1)
+			if (errno == EINPROGRESS) // This is fine, it means it's going to get back to us...
+				break;
+
+		close(conn->fd);
+	}
+
+	if (rp == NULL)
+	{ /* No address succeeded */
+	  fprintf(stderr, "Could not connect\n");
+		sfree(conn);
+		return NULL;
+	}
+
+	freeaddrinfo(result);           /* No longer needed */
+	// add it to the sockengine
   r_config.socketengine->add(conn, 0, 1);
 
   fprintf(stderr, "Connect started, fd: %d!\n", conn->fd);
@@ -236,6 +232,7 @@ connection *cis_tcp_connect(char *target_host, int target_port)
   conn->recvq = new_buffer_queue(1000);
   conn->sendq = new_buffer_queue(1000);
 
+	conn->state.connecting = 1;
   conn->state.can_shutdown = 1;
 
   return conn;

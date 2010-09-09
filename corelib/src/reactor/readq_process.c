@@ -58,4 +58,6 @@ void cis_readq_process ( )
 			}
 		}
 	}
+	else
+		r_config.patience = 250;
 }

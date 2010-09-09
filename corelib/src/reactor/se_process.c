@@ -33,7 +33,7 @@ int cis_se_process ( )
 				fifo_add(r_config.global_recvq, read_events[i]);
 			}
 			/* Don't wait for data! too much to do! */
-			r_config.patience = 0;
+			r_config.patience = 10;
 		}
 
 		if ( write_events[i] != NULL )
