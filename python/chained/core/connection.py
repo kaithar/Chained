@@ -8,6 +8,7 @@ class Connection (object):
 	sendq = None
 
 	def __init__(self, conn = None, protocol = None):
+		print "Connection::__init__ ", conn, protocol
 		if conn:
 			self.ctype = conn
 			conn.contents.callback_connected = chained.vc(self.callback_connected)
@@ -58,7 +59,7 @@ class Connection (object):
 		return 0
 
 	def write(self, s):
-		chained.so_chained.cprintf(self.ctype, s)
+		chained.so_chained.cprintf(self.ctype, "%s", s)
 
 	def close(self):
-		ctype.close(self.ctype)
+		self.ctype.contents.close(self.ctype)

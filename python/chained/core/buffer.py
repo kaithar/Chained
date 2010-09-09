@@ -32,7 +32,7 @@ class Buffer (object):
 		size = 1000
 		while True:
 			s = create_string_buffer('\0' * size)
-			status = chained.so_chained.buffer_pop_by_size(self.ctype, s, size, delim)
+			status = chained.so_chained.buffer_pop_to_delim(self.ctype, s, size, delim)
 			if (status == -1) or (status == -2):
 				return (status, None)
 			elif (status == -3):

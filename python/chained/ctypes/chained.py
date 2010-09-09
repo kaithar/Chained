@@ -128,8 +128,14 @@ Buffer_queue._fields_ = [
 
 # Function type fixes.
 
+so_chained.cprintf.restype = c_int
+so_chained.cprintf.argtypes = [POINTER(Connection), c_char_p, c_char_p]
+
 so_chained.cis_tcp_listen.restype = POINTER(Connection)
 so_chained.cis_tcp_listen.argtypes = [c_char_p, c_int]
+
+so_chained.cis_tcp_connect.restype = POINTER(Connection)
+so_chained.cis_tcp_connect.argtypes = [c_char_p, c_int]
 
 # Buffer.h
 
