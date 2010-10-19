@@ -148,6 +148,9 @@ so_chained.buffer_store.argtypes = [POINTER(Buffer_queue), c_char_p, c_uint]
 so_chained.buffer_eof.restype = None
 so_chained.buffer_eof.argtypes = [POINTER(Buffer_queue)]
 
+so_chained.buffer_pop_chunk.restype = c_int
+so_chained.buffer_pop_chunk.argtypes = [POINTER(Buffer_queue), c_char_p, c_uint]
+
 so_chained.buffer_pop_by_size.restype = c_int
 so_chained.buffer_pop_by_size.argtypes = [POINTER(Buffer_queue), c_char_p, c_uint]
 

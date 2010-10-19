@@ -37,6 +37,7 @@ struct buffer_queue
 extern buffer_queue *new_buffer_queue (unsigned int block_size);
 extern void buffer_store (buffer_queue *buf, char *block, unsigned int size);
 extern void buffer_eof (buffer_queue *buf);
+extern int buffer_pop_chunk(buffer_queue *buf, char *block, unsigned int size);
 extern int buffer_pop_by_size (buffer_queue *buf, char *block, unsigned int size);
 extern int buffer_pop_to_delim (buffer_queue *buf, char *block, unsigned int size, char delim);
 extern char buffer_peek (buffer_queue *buf);

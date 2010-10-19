@@ -7,7 +7,7 @@
  * Abstractions to queue to present as a continue data stream.
  */
 
-#include <includes/chained.h>
+#include "includes/chained.h"
 #include <string.h>
 
 buffer_queue *new_buffer_queue (unsigned int block_size)
@@ -55,6 +55,34 @@ void buffer_eof (buffer_queue *buf)
   bp->start = 0;
   bp->eof = true;
   fifo_add(buf->queue, bp);
+}
+
+/** buffer_pop_chunk - Get next chunk.
+ * Useful mainly for UDP and ICMP connections, which have a chunk to record equivilence.
+ * @return Returns number of bytes writen to block.
+ *  0 means block of 0 bytes encountered and written to block.
+ * -1 means eof encountered.
+ * -2 means queue is empty
+ * -3 means your buffer wasn't big enough to hold all data up to requested delim.
+ * Consider -1 fatal, -2 try again later, and -3 try again now with bigger buffer.
+ */
+
+int buffer_pop_chunk(buffer_queue *buf, char *block, unsigned int size)
+{
+	unsigned int ret = 0;
+	buffer_packet *bp = fifo_peek(buf->queue);
+	if ((bp != NULL) && bp->eof)
+    return -1;
+	if (bp == NULL)
+		return -2;
+	if (bp->length > size)
+		return -3;
+	memcpy(block, bp->content + bp->start, (size_t)bp->length);
+	ret = bp->length;
+	(void) fifo_pop(buf->queue);
+	sfree(bp->content);
+	sfree(bp);
+	return ret;
 }
 
 int buffer_pop_by_size (buffer_queue *buf, char *block, unsigned int size)

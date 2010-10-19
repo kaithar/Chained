@@ -12,6 +12,12 @@ class Buffer (object):
 
 	#def eof(self):
 		# extern void buffer_eof (buffer_queue *buf);
+		
+	def pop_chunk(self, size):
+		# extern int buffer_pop_chunk (buffer_queue *buf, char *block, unsigned int size);
+		s = create_string_buffer('\0' * size)
+		status = chained.so_chained.buffer_pop_chunk(self.ctype, s, size)
+		return (status, str(s.value))
 
 	def pop_by_size(self, size):
 		# extern int buffer_pop_by_size (buffer_queue *buf, char *block, unsigned int size);
