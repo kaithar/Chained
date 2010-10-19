@@ -41,7 +41,12 @@ int cis_se_process ( )
 			w++;
 			if ( write_events[i]->state.connecting == 1 )
 			{
-				assert(getsockopt(write_events[i]->fd, SOL_SOCKET, SO_ERROR, &temp_int, &temp_int2) == 0);
+                                temp_int = temp_int2 = 0;
+				if (getsockopt(write_events[i]->fd, SOL_SOCKET, SO_ERROR, &temp_int, &temp_int2) < 0)
+                                {
+                                    perror("getsockopt in se_process: ");
+                                    abort();
+                                }
 
 				if ( temp_int == 0 )
 				{
