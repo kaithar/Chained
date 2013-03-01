@@ -106,6 +106,7 @@ int buffer_pop_by_size (buffer_queue *buf, char *block, unsigned int size)
     {
       memcpy(pos, bp->content + bp->start, (size_t)bp->length);
       popped += bp->length;
+      pos += bp->length;
 
       (void) fifo_pop(buf->queue);
       sfree(bp->content);
